@@ -330,6 +330,124 @@
   .bh-line {
     margin-top: 6px;
   }
+
+  /* View tabs */
+  .view-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 0 0 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .view-tab {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: -1px;
+    letter-spacing: 0.01em;
+  }
+  .view-tab:hover {
+    color: var(--ink);
+    background: var(--accent-soft);
+  }
+  .view-tab.active {
+    background: var(--card);
+    border-color: var(--border);
+    color: var(--accent);
+  }
+  .view-pane[hidden] { display: none; }
+
+  /* YTD specific */
+  .ytd-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .ytd-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  /* YTD weekly chart */
+  #ytdYoyChart {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .yoy-empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 14px 0;
+    font-size: 13px;
+  }
+
+  /* Forecast styles */
+  .lg-dot-fc { background: #f59e0b; }
+  .fc-line {
+    fill: none;
+    stroke: #f59e0b;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+  }
+  .fc-marker {
+    fill: #f59e0b;
+    stroke: #fff;
+    stroke-width: 1.5;
+  }
+  .forecast-row {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #fffaf0;
+    border: 1px dashed #f4c674;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .forecast-row .fc-label {
+    color: #8a5a00;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .forecast-row .fc-value {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .forecast-row .fc-delta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .forecast-row .fc-delta.up   { color: var(--good); }
+  .forecast-row .fc-delta.down { color: var(--bad); }
+
+  .forecast-block {
+    margin-top: 18px;
+    padding: 14px 16px 16px;
+    border: 1px dashed #f4c674;
+    background: #fffaf0;
+    border-radius: 10px;
+  }
+  .forecast-block .compare-title { color: #8a5a00; }
 </style>
 </head>
 <body>
@@ -351,6 +469,13 @@
       <button id="latestBtn" class="latest" title="Jump to latest date">Latest</button>
     </div>
   </header>
+
+  <nav class="view-tabs" role="tablist" aria-label="Dashboard views">
+    <button class="view-tab active" id="tabDaily"  role="tab" aria-selected="true"  aria-controls="dailyView">Daily</button>
+    <button class="view-tab"        id="tabYtd"    role="tab" aria-selected="false" aria-controls="ytdView">Year to Date</button>
+  </nav>
+
+  <div class="view-pane" id="dailyView" role="tabpanel" aria-labelledby="tabDaily">
 
   <section class="section" id="salesSection">
     <h2>Sales &amp; Credit Notes <span class="pill" id="latestPill" style="display:none;">Latest</span></h2>
@@ -398,6 +523,14 @@
         </div>
       </div>
       <div class="cmp-nodata" id="cmpNoData" style="display:none;">No data recorded for the same day last year.</div>
+    </div>
+
+    <div class="forecast-row" id="dailyForecastRow" style="display:none;">
+      <div>
+        <span class="fc-label">Forecast for the day:</span>
+        <span class="fc-value" id="dailyForecastVal">&mdash;</span>
+      </div>
+      <div class="fc-delta" id="dailyForecastDelta">&nbsp;</div>
     </div>
 
     <div class="nodata" id="noData" style="display:none;">No data recorded for this date.</div>
@@ -576,6 +709,164 @@
     </div>
   </section>
 
+  </div><!-- /#dailyView -->
+
+  <div class="view-pane" id="ytdView" role="tabpanel" aria-labelledby="tabYtd" hidden>
+
+    <section class="section" id="ytdSalesSection">
+      <div class="ytd-header">
+        <h2>Sales &amp; Credit Notes &mdash; Year to Date</h2>
+        <span class="ytd-pill" id="ytdFyPill">FY &mdash;</span>
+      </div>
+      <div class="section-sub" id="ytdSalesSub">Cumulative invoiced sales and credit notes for the fiscal year, up to and including the selected date.</div>
+
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Invoices YTD</div>
+          <div class="value" id="ytdInvoice">&mdash;</div>
+        </div>
+        <div class="stat">
+          <div class="label">Credit Notes YTD</div>
+          <div class="value" id="ytdCredit">&mdash;</div>
+        </div>
+        <div class="stat">
+          <div class="label">Credit Notes as % of Invoices</div>
+          <div class="value pct" id="ytdPct">&mdash;</div>
+          <div class="hint" id="ytdPctHint">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="compare" id="ytdSalesCompare">
+        <div class="compare-head">
+          <div class="compare-title">Same period last year <span id="ytdSalesCmpFy">&mdash;</span></div>
+          <div class="compare-sub" id="ytdSalesCmpSub">&nbsp;</div>
+        </div>
+        <div class="compare-grid">
+          <div class="cmp-stat">
+            <div class="cmp-label">Invoices</div>
+            <div class="cmp-value" id="ytdCmpInvoice">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpInvoiceDelta">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">Credit Notes</div>
+            <div class="cmp-value" id="ytdCmpCredit">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpCreditDelta">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">Credit Notes as % of Invoices</div>
+            <div class="cmp-value" id="ytdCmpPct">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpPctDelta">&nbsp;</div>
+          </div>
+        </div>
+        <div class="cmp-nodata" id="ytdSalesCmpNoData" style="display:none;">No data recorded for the same period last year.</div>
+      </div>
+
+      <div class="forecast-block" id="ytdForecastBlock">
+        <div class="compare-head">
+          <div class="compare-title">vs Forecast (YTD)</div>
+          <div class="compare-sub" id="ytdForecastSub">&nbsp;</div>
+        </div>
+        <div class="compare-grid">
+          <div class="cmp-stat">
+            <div class="cmp-label">Forecast Invoices YTD</div>
+            <div class="cmp-value" id="ytdForecastVal">&mdash;</div>
+            <div class="cmp-delta" id="ytdForecastDelta">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">% of Forecast Achieved</div>
+            <div class="cmp-value" id="ytdForecastPct">&mdash;</div>
+            <div class="cmp-delta" id="ytdForecastPctHint">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">Variance to Forecast</div>
+            <div class="cmp-value" id="ytdForecastVar">&mdash;</div>
+            <div class="cmp-delta" id="ytdForecastVarPct">&nbsp;</div>
+          </div>
+        </div>
+        <div class="cmp-nodata" id="ytdForecastNoData" style="display:none;">No forecast loaded.</div>
+      </div>
+
+      <div class="meta-row">
+        <div id="ytdSalesRangeLabel">&nbsp;</div>
+        <div id="ytdSalesDayCount">&nbsp;</div>
+      </div>
+    </section>
+
+    <section class="section" id="ytdRoutesSection">
+      <div class="ytd-header">
+        <h2>Routes &amp; Drops Delivered &mdash; Year to Date</h2>
+        <span class="ytd-pill" id="ytdRoutesFyPill">FY &mdash;</span>
+      </div>
+      <div class="section-sub">Cumulative delivery routes, drops and weight delivered for the fiscal year, up to and including the selected date.</div>
+
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Routes YTD</div>
+          <div class="value" id="ytdRoutes">&mdash;</div>
+        </div>
+        <div class="stat">
+          <div class="label">Drops YTD</div>
+          <div class="value" id="ytdDrops">&mdash;</div>
+        </div>
+        <div class="stat">
+          <div class="label">Weight Delivered (kg) YTD</div>
+          <div class="value" id="ytdKg">&mdash;</div>
+        </div>
+      </div>
+
+      <div class="compare" id="ytdRoutesCompare">
+        <div class="compare-head">
+          <div class="compare-title">Same period last year <span id="ytdRoutesCmpFy">&mdash;</span></div>
+          <div class="compare-sub" id="ytdRoutesCmpSub">&nbsp;</div>
+        </div>
+        <div class="compare-grid">
+          <div class="cmp-stat">
+            <div class="cmp-label">Routes</div>
+            <div class="cmp-value" id="ytdCmpRoutes">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpRoutesDelta">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">Drops</div>
+            <div class="cmp-value" id="ytdCmpDrops">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpDropsDelta">&nbsp;</div>
+          </div>
+          <div class="cmp-stat">
+            <div class="cmp-label">Weight (kg)</div>
+            <div class="cmp-value" id="ytdCmpKg">&mdash;</div>
+            <div class="cmp-delta" id="ytdCmpKgDelta">&nbsp;</div>
+          </div>
+        </div>
+        <div class="cmp-nodata" id="ytdRoutesCmpNoData" style="display:none;">No route data recorded for the same period last year.</div>
+      </div>
+
+      <div class="meta-row">
+        <div id="ytdRoutesRangeLabel">&nbsp;</div>
+        <div id="ytdRoutesDayCount">&nbsp;</div>
+      </div>
+    </section>
+
+    <section class="section" id="ytdYoySection">
+      <h2>Weekly Sales &mdash; Year on Year</h2>
+      <div class="section-sub" id="ytdYoySub">Invoice value by fiscal week, current year vs prior year. Hover any bar for details.</div>
+
+      <div class="chart-block">
+        <div class="chart-title">
+          Weekly invoice value
+          <span class="chart-legend">
+            <span class="lg-dot lg-dot-cur"></span><span id="ytdYoyLegendCur">Current FY</span>
+            <span class="lg-dot lg-dot-ly"></span><span id="ytdYoyLegendLy">Prior FY</span>
+            <span class="lg-dot lg-dot-fc"></span>Forecast
+          </span>
+        </div>
+        <div class="chart-wrap">
+          <svg id="ytdYoyChart" viewBox="0 0 980 360" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Weekly invoice value, current FY vs prior FY"></svg>
+        </div>
+        <div class="yoy-empty" id="ytdYoyEmpty" style="display:none;">No fiscal-year data available to chart.</div>
+      </div>
+    </section>
+
+  </div><!-- /#ytdView -->
+
   <footer class="foot">
     Generated <span id="generatedOn"></span>. Data range: <span id="rangeLabel"></span>.
   </footer>
@@ -585,10 +876,12 @@
 <script>
   // === DATA (embedded from spreadsheet) ===
   // Each entry: "YYYY-MM-DD": { invoice: <Col C>, credit: <Col E> }
-  const DATA={"2024-09-30":{"invoice":206634.17,"credit":2955.55},"2024-10-01":{"invoice":177273.02,"credit":2267.8},"2024-10-02":{"invoice":174961.06,"credit":3961.17},"2024-10-03":{"invoice":163209.86,"credit":2095.17},"2024-10-04":{"invoice":183573.77,"credit":2256.47},"2024-10-05":{"invoice":114611.73,"credit":1417.64},"2024-10-06":{"invoice":3.88,"credit":0.0},"2024-10-07":{"invoice":196267.47,"credit":1881.41},"2024-10-08":{"invoice":159580.38,"credit":1533.31},"2024-10-09":{"invoice":161964.67,"credit":1734.18},"2024-10-10":{"invoice":166087.7,"credit":869.39},"2024-10-11":{"invoice":173739.0,"credit":3430.32},"2024-10-12":{"invoice":110992.12,"credit":101.85},"2024-10-13":{"invoice":5.01,"credit":23.39},"2024-10-14":{"invoice":197383.2,"credit":2245.4},"2024-10-15":{"invoice":165687.43,"credit":554.05},"2024-10-16":{"invoice":176106.23,"credit":2836.18},"2024-10-17":{"invoice":161686.79,"credit":2118.51},"2024-10-18":{"invoice":172971.01,"credit":1538.8},"2024-10-19":{"invoice":112076.5,"credit":324.68},"2024-10-20":{"invoice":14.86,"credit":15.85},"2024-10-21":{"invoice":192301.18,"credit":828.57},"2024-10-22":{"invoice":179363.92,"credit":3871.34},"2024-10-23":{"invoice":174040.76,"credit":1718.99},"2024-10-24":{"invoice":175876.13,"credit":4053.68},"2024-10-25":{"invoice":179777.77,"credit":2087.26},"2024-10-26":{"invoice":133281.34,"credit":1003.37},"2024-10-28":{"invoice":170793.56,"credit":991.81},"2024-10-29":{"invoice":134860.24,"credit":945.09},"2024-10-30":{"invoice":168224.06,"credit":663.07},"2024-10-31":{"invoice":140605.56,"credit":2305.58},"2024-11-01":{"invoice":185162.69,"credit":614.12},"2024-11-02":{"invoice":137458.86,"credit":459.54},"2024-11-04":{"invoice":205309.01,"credit":3275.41},"2024-11-05":{"invoice":153588.82,"credit":1459.26},"2024-11-06":{"invoice":169004.53,"credit":1395.51},"2024-11-07":{"invoice":171325.53,"credit":1766.54},"2024-11-08":{"invoice":163121.37,"credit":989.24},"2024-11-09":{"invoice":115360.07,"credit":367.96},"2024-11-11":{"invoice":189233.9,"credit":3787.48},"2024-11-12":{"invoice":174900.92,"credit":2686.54},"2024-11-13":{"invoice":155307.7,"credit":4315.04},"2024-11-14":{"invoice":171643.04,"credit":5266.18},"2024-11-15":{"invoice":183089.38,"credit":1037.65},"2024-11-16":{"invoice":99770.37,"credit":0.0},"2024-11-18":{"invoice":206704.29,"credit":4432.2},"2024-11-19":{"invoice":172337.24,"credit":2553.39},"2024-11-20":{"invoice":156404.02,"credit":11924.72},"2024-11-21":{"invoice":162517.99,"credit":2758.51},"2024-11-22":{"invoice":172505.77,"credit":1876.06},"2024-11-23":{"invoice":103586.75,"credit":591.06},"2024-11-25":{"invoice":181047.67,"credit":1642.98},"2024-11-26":{"invoice":156901.56,"credit":2254.42},"2024-11-27":{"invoice":163132.23,"credit":1991.17},"2024-11-28":{"invoice":174374.7,"credit":2522.15},"2024-11-29":{"invoice":175037.77,"credit":1468.97},"2024-11-30":{"invoice":113416.02,"credit":1048.97},"2024-12-02":{"invoice":206856.46,"credit":1564.53},"2024-12-03":{"invoice":157942.27,"credit":1188.54},"2024-12-04":{"invoice":188475.94,"credit":2069.59},"2024-12-05":{"invoice":185765.47,"credit":2744.01},"2024-12-06":{"invoice":182593.46,"credit":1618.06},"2024-12-07":{"invoice":99781.3,"credit":19558.02},"2024-12-08":{"invoice":760.91,"credit":0.0},"2024-12-09":{"invoice":180782.37,"credit":6925.63},"2024-12-10":{"invoice":166941.96,"credit":371.1},"2024-12-11":{"invoice":165054.19,"credit":3301.27},"2024-12-12":{"invoice":183824.74,"credit":3217.35},"2024-12-13":{"invoice":178321.41,"credit":2340.11},"2024-12-14":{"invoice":116995.05,"credit":1034.59},"2024-12-15":{"invoice":25.89,"credit":495.0},"2024-12-16":{"invoice":197156.53,"credit":3460.61},"2024-12-17":{"invoice":173298.82,"credit":3172.06},"2024-12-18":{"invoice":158535.72,"credit":2735.53},"2024-12-19":{"invoice":183272.69,"credit":2423.34},"2024-12-20":{"invoice":183815.55,"credit":2924.97},"2024-12-21":{"invoice":135967.96,"credit":264.75},"2024-12-23":{"invoice":197542.11,"credit":3320.95},"2024-12-24":{"invoice":134662.89,"credit":2284.39},"2024-12-25":{"invoice":0.0,"credit":0.0},"2024-12-27":{"invoice":24912.46,"credit":12288.68},"2024-12-28":{"invoice":171644.1,"credit":1969.87},"2024-12-30":{"invoice":189272.95,"credit":1829.96},"2024-12-31":{"invoice":159671.33,"credit":1585.14},"2025-01-01":{"invoice":0.0,"credit":0.0},"2025-01-02":{"invoice":25510.08,"credit":548.35},"2025-01-03":{"invoice":197483.99,"credit":2576.53},"2025-01-04":{"invoice":105218.02,"credit":0.0},"2025-01-06":{"invoice":133950.19,"credit":2554.21},"2025-01-07":{"invoice":141707.08,"credit":3232.86},"2025-01-08":{"invoice":145655.26,"credit":2397.1},"2025-01-09":{"invoice":135080.71,"credit":7138.82},"2025-01-10":{"invoice":118386.47,"credit":1943.8},"2025-01-11":{"invoice":70344.25,"credit":205.41},"2025-01-13":{"invoice":138700.61,"credit":1969.8},"2025-01-14":{"invoice":141362.29,"credit":1915.93},"2025-01-15":{"invoice":133198.11,"credit":762.56},"2025-01-16":{"invoice":136373.11,"credit":1437.74},"2025-01-17":{"invoice":140544.07,"credit":2514.84},"2025-01-18":{"invoice":80551.31,"credit":278.21},"2025-01-20":{"invoice":172045.19,"credit":2162.49},"2025-01-21":{"invoice":139974.02,"credit":1023.29},"2025-01-22":{"invoice":153328.17,"credit":1790.78},"2025-01-23":{"invoice":147073.93,"credit":1536.51},"2025-01-24":{"invoice":141119.61,"credit":2269.02},"2025-01-25":{"invoice":81689.43,"credit":312.88},"2025-01-27":{"invoice":165824.17,"credit":1434.47},"2025-01-28":{"invoice":148143.5,"credit":1491.71},"2025-01-29":{"invoice":156217.54,"credit":3732.64},"2025-01-30":{"invoice":156581.02,"credit":1542.05},"2025-01-31":{"invoice":155355.38,"credit":683.17},"2025-02-01":{"invoice":108321.93,"credit":0.0},"2025-02-03":{"invoice":173297.71,"credit":1375.83},"2025-02-04":{"invoice":146716.8,"credit":2077.95},"2025-02-05":{"invoice":152390.06,"credit":1596.76},"2025-02-06":{"invoice":158157.82,"credit":1111.44},"2025-02-07":{"invoice":156775.19,"credit":1022.44},"2025-02-08":{"invoice":107972.53,"credit":744.91},"2025-02-10":{"invoice":195590.2,"credit":1827.24},"2025-02-11":{"invoice":148563.36,"credit":2728.16},"2025-02-12":{"invoice":180991.2,"credit":1302.73},"2025-02-13":{"invoice":180734.32,"credit":1727.16},"2025-02-14":{"invoice":179845.03,"credit":2099.66},"2025-02-15":{"invoice":104110.09,"credit":0.0},"2025-02-16":{"invoice":20.07,"credit":0.0},"2025-02-17":{"invoice":198751.94,"credit":1380.83},"2025-02-18":{"invoice":168777.66,"credit":2001.57},"2025-02-19":{"invoice":172283.34,"credit":992.43},"2025-02-20":{"invoice":172224.42,"credit":1838.52},"2025-02-21":{"invoice":171197.5,"credit":1041.43},"2025-02-22":{"invoice":126138.12,"credit":449.68},"2025-02-24":{"invoice":141832.14,"credit":1857.96},"2025-02-25":{"invoice":118117.21,"credit":1746.14},"2025-02-26":{"invoice":114587.6,"credit":934.03},"2025-02-27":{"invoice":126483.52,"credit":2191.67},"2025-02-28":{"invoice":174736.49,"credit":3980.86},"2025-03-01":{"invoice":127846.95,"credit":0.0},"2025-03-03":{"invoice":216633.95,"credit":2220.34},"2025-03-04":{"invoice":183606.38,"credit":228.46},"2025-03-05":{"invoice":193648.51,"credit":3787.9},"2025-03-06":{"invoice":182931.82,"credit":1233.21},"2025-03-07":{"invoice":198530.18,"credit":1657.93},"2025-03-08":{"invoice":111541.17,"credit":1516.74},"2025-03-09":{"invoice":60.67,"credit":0.0},"2025-03-10":{"invoice":233104.01,"credit":2808.45},"2025-03-11":{"invoice":182450.1,"credit":3315.08},"2025-03-12":{"invoice":182878.06,"credit":2253.0},"2025-03-13":{"invoice":173637.61,"credit":1751.74},"2025-03-14":{"invoice":203998.56,"credit":1556.32},"2025-03-15":{"invoice":121205.09,"credit":0.0},"2025-03-16":{"invoice":317.69,"credit":0.0},"2025-03-17":{"invoice":205765.3,"credit":2629.4},"2025-03-18":{"invoice":176130.2,"credit":2720.88},"2025-03-19":{"invoice":203183.0,"credit":1142.27},"2025-03-20":{"invoice":195728.24,"credit":2857.43},"2025-03-21":{"invoice":214694.88,"credit":4265.72},"2025-03-22":{"invoice":113747.99,"credit":2621.39},"2025-03-23":{"invoice":9.58,"credit":0.0},"2025-03-24":{"invoice":229382.81,"credit":2564.27},"2025-03-25":{"invoice":181673.6,"credit":1290.13},"2025-03-26":{"invoice":202074.53,"credit":1779.92},"2025-03-27":{"invoice":198684.22,"credit":1877.48},"2025-03-28":{"invoice":246456.01,"credit":1926.56},"2025-03-29":{"invoice":151659.55,"credit":0.0},"2025-03-30":{"invoice":79.73,"credit":0.0},"2025-03-31":{"invoice":213413.68,"credit":6053.94},"2025-04-01":{"invoice":185240.46,"credit":2552.79},"2025-04-02":{"invoice":207368.21,"credit":1210.33},"2025-04-03":{"invoice":210592.49,"credit":2850.03},"2025-04-04":{"invoice":240849.95,"credit":1992.44},"2025-04-05":{"invoice":143692.22,"credit":3042.82},"2025-04-07":{"invoice":259960.8,"credit":1778.32},"2025-04-08":{"invoice":205516.98,"credit":7645.28},"2025-04-09":{"invoice":219610.02,"credit":2476.72},"2025-04-10":{"invoice":216436.42,"credit":3221.2},"2025-04-11":{"invoice":255096.86,"credit":2779.86},"2025-04-12":{"invoice":182597.84,"credit":229.82},"2025-04-13":{"invoice":35.13,"credit":0.0},"2025-04-14":{"invoice":198322.44,"credit":3578.07},"2025-04-15":{"invoice":138510.57,"credit":3104.53},"2025-04-16":{"invoice":172445.23,"credit":1892.66},"2025-04-17":{"invoice":186683.78,"credit":2997.88},"2025-04-18":{"invoice":255251.83,"credit":1452.24},"2025-04-19":{"invoice":196298.8,"credit":14.59},"2025-04-20":{"invoice":24.4,"credit":0.0},"2025-04-21":{"invoice":186614.91,"credit":3030.7},"2025-04-22":{"invoice":146647.33,"credit":893.01},"2025-04-23":{"invoice":161965.47,"credit":642.03},"2025-04-24":{"invoice":148912.54,"credit":2809.22},"2025-04-25":{"invoice":198138.34,"credit":1301.6},"2025-04-26":{"invoice":148002.75,"credit":1329.2},"2025-04-27":{"invoice":25.09,"credit":0.0},"2025-04-28":{"invoice":219416.29,"credit":3880.33},"2025-04-29":{"invoice":186529.24,"credit":3643.2},"2025-04-30":{"invoice":232095.37,"credit":1041.7},"2025-05-01":{"invoice":227583.84,"credit":4268.42},"2025-05-02":{"invoice":266172.7,"credit":2139.41},"2025-05-03":{"invoice":185682.08,"credit":923.04},"2025-05-04":{"invoice":7.16,"credit":0.0},"2025-05-05":{"invoice":168132.79,"credit":2003.45},"2025-05-06":{"invoice":217719.11,"credit":2540.82},"2025-05-07":{"invoice":233261.08,"credit":1133.7},"2025-05-08":{"invoice":195928.07,"credit":3327.64},"2025-05-09":{"invoice":230442.01,"credit":2706.41},"2025-05-10":{"invoice":153712.61,"credit":229.47},"2025-05-12":{"invoice":240980.97,"credit":2805.58},"2025-05-13":{"invoice":171791.72,"credit":1898.82},"2025-05-14":{"invoice":213739.12,"credit":59.97},"2025-05-15":{"invoice":212549.03,"credit":4167.02},"2025-05-16":{"invoice":239152.13,"credit":1391.89},"2025-05-17":{"invoice":159206.78,"credit":1120.74},"2025-05-18":{"invoice":0.0,"credit":0.0},"2025-05-19":{"invoice":245033.08,"credit":938.56},"2025-05-20":{"invoice":187799.39,"credit":2315.13},"2025-05-21":{"invoice":225987.17,"credit":965.26},"2025-05-22":{"invoice":221680.02,"credit":2272.27},"2025-05-23":{"invoice":253071.22,"credit":6135.16},"2025-05-24":{"invoice":193220.35,"credit":47.5},"2025-05-26":{"invoice":168275.61,"credit":2865.53},"2025-05-27":{"invoice":147540.19,"credit":3999.24},"2025-05-28":{"invoice":179396.75,"credit":329.19},"2025-05-29":{"invoice":191631.67,"credit":6056.72},"2025-05-30":{"invoice":225253.88,"credit":2779.51},"2025-05-31":{"invoice":185032.25,"credit":1585.19},"2025-06-02":{"invoice":252832.61,"credit":5014.59},"2025-06-03":{"invoice":194817.83,"credit":3017.78},"2025-06-04":{"invoice":210617.31,"credit":711.59},"2025-06-05":{"invoice":207207.19,"credit":3664.24},"2025-06-06":{"invoice":221804.99,"credit":2138.4},"2025-06-07":{"invoice":153137.65,"credit":384.4},"2025-06-08":{"invoice":2.24,"credit":0.0},"2025-06-09":{"invoice":229005.49,"credit":2410.27},"2025-06-10":{"invoice":187466.9,"credit":3805.81},"2025-06-11":{"invoice":211614.4,"credit":1850.72},"2025-06-12":{"invoice":216072.26,"credit":2661.67},"2025-06-13":{"invoice":234164.8,"credit":2353.83},"2025-06-14":{"invoice":167323.76,"credit":694.1},"2025-06-15":{"invoice":2.5,"credit":0.0},"2025-06-16":{"invoice":245347.27,"credit":3433.29},"2025-06-17":{"invoice":193964.29,"credit":1780.53},"2025-06-18":{"invoice":228076.79,"credit":1901.95},"2025-06-19":{"invoice":221194.9,"credit":2774.89},"2025-06-20":{"invoice":259692.38,"credit":1404.53},"2025-06-21":{"invoice":168663.42,"credit":1008.45},"2025-06-23":{"invoice":227978.16,"credit":2879.77},"2025-06-24":{"invoice":198746.84,"credit":2512.86},"2025-06-25":{"invoice":216101.36,"credit":5331.9},"2025-06-26":{"invoice":207101.84,"credit":1868.0},"2025-06-27":{"invoice":238654.49,"credit":4925.68},"2025-06-28":{"invoice":153200.18,"credit":0.0},"2025-06-30":{"invoice":238154.64,"credit":2318.25},"2025-07-01":{"invoice":211765.14,"credit":2732.89},"2025-07-02":{"invoice":225214.67,"credit":2732.15},"2025-07-03":{"invoice":208714.76,"credit":5396.69},"2025-07-04":{"invoice":242463.26,"credit":878.65},"2025-07-05":{"invoice":155262.33,"credit":1030.03},"2025-07-07":{"invoice":238411.79,"credit":4156.33},"2025-07-08":{"invoice":189350.43,"credit":2078.45},"2025-07-09":{"invoice":197827.54,"credit":1336.76},"2025-07-10":{"invoice":221486.71,"credit":5035.55},"2025-07-11":{"invoice":258422.84,"credit":3554.51},"2025-07-12":{"invoice":193339.95,"credit":1525.28},"2025-07-13":{"invoice":0.0,"credit":17.5},"2025-07-14":{"invoice":254379.16,"credit":2172.68},"2025-07-15":{"invoice":183938.67,"credit":1940.35},"2025-07-16":{"invoice":203517.17,"credit":3467.31},"2025-07-17":{"invoice":193593.02,"credit":2065.82},"2025-07-18":{"invoice":236945.94,"credit":3999.25},"2025-07-19":{"invoice":179993.21,"credit":1612.1},"2025-07-20":{"invoice":83.8,"credit":46.0},"2025-07-21":{"invoice":200268.85,"credit":2053.66},"2025-07-22":{"invoice":149464.41,"credit":1908.51},"2025-07-23":{"invoice":179521.55,"credit":2886.74},"2025-07-24":{"invoice":178495.8,"credit":2044.05},"2025-07-25":{"invoice":240261.47,"credit":778.43},"2025-07-26":{"invoice":206464.96,"credit":0.0},"2025-07-27":{"invoice":39.37,"credit":22.41},"2025-07-28":{"invoice":228482.98,"credit":3437.33},"2025-07-29":{"invoice":177191.19,"credit":4051.26},"2025-07-30":{"invoice":200809.61,"credit":1704.48},"2025-07-31":{"invoice":196138.66,"credit":1567.89},"2025-08-01":{"invoice":234249.71,"credit":2493.28},"2025-08-02":{"invoice":204272.81,"credit":1260.78},"2025-08-03":{"invoice":29.02,"credit":0.0},"2025-08-04":{"invoice":222615.39,"credit":1994.63},"2025-08-05":{"invoice":153835.69,"credit":982.76},"2025-08-06":{"invoice":189618.84,"credit":2197.67},"2025-08-07":{"invoice":206975.68,"credit":3198.54},"2025-08-08":{"invoice":252968.45,"credit":1406.78},"2025-08-09":{"invoice":216982.38,"credit":1713.54},"2025-08-10":{"invoice":139.52,"credit":0.0},"2025-08-11":{"invoice":243976.7,"credit":2088.79},"2025-08-12":{"invoice":186472.83,"credit":2075.12},"2025-08-13":{"invoice":218508.84,"credit":2047.49},"2025-08-14":{"invoice":225836.8,"credit":2997.2},"2025-08-15":{"invoice":255819.48,"credit":2125.99},"2025-08-16":{"invoice":225265.55,"credit":229.86},"2025-08-17":{"invoice":35.45,"credit":0.0},"2025-08-18":{"invoice":268540.03,"credit":7481.16},"2025-08-19":{"invoice":185509.36,"credit":1460.3},"2025-08-20":{"invoice":203762.55,"credit":638.11},"2025-08-21":{"invoice":221600.69,"credit":1526.97},"2025-08-22":{"invoice":289366.23,"credit":2335.43},"2025-08-23":{"invoice":254474.4,"credit":832.79},"2025-08-24":{"invoice":17.94,"credit":0.0},"2025-08-25":{"invoice":219658.25,"credit":1189.83},"2025-08-26":{"invoice":197771.52,"credit":2693.12},"2025-08-27":{"invoice":201071.8,"credit":1046.0},"2025-08-28":{"invoice":201305.43,"credit":4198.46},"2025-08-29":{"invoice":245562.97,"credit":2060.1},"2025-08-30":{"invoice":186964.15,"credit":9.97},"2025-08-31":{"invoice":16.59,"credit":8.82},"2025-09-01":{"invoice":280222.14,"credit":2928.84},"2025-09-02":{"invoice":239532.91,"credit":3782.86},"2025-09-03":{"invoice":215518.7,"credit":2365.91},"2025-09-04":{"invoice":215444.99,"credit":5729.24},"2025-09-05":{"invoice":252905.5,"credit":1352.25},"2025-09-06":{"invoice":144564.17,"credit":1953.24},"2025-09-08":{"invoice":260221.1,"credit":1533.44},"2025-09-09":{"invoice":215351.2,"credit":3724.89},"2025-09-10":{"invoice":230751.21,"credit":2774.35},"2025-09-11":{"invoice":229458.16,"credit":2212.16},"2025-09-12":{"invoice":245833.88,"credit":7633.12},"2025-09-13":{"invoice":134031.35,"credit":776.86},"2025-09-14":{"invoice":36.56,"credit":2.93},"2025-09-15":{"invoice":244455.02,"credit":3246.38},"2025-09-16":{"invoice":227916.73,"credit":1376.95},"2025-09-17":{"invoice":223343.31,"credit":2986.71},"2025-09-18":{"invoice":220015.81,"credit":2347.62},"2025-09-19":{"invoice":225032.81,"credit":3663.01},"2025-09-20":{"invoice":140214.61,"credit":313.2},"2025-09-21":{"invoice":83.56,"credit":0.0},"2025-09-22":{"invoice":264253.66,"credit":5033.17},"2025-09-23":{"invoice":237797.21,"credit":2371.43},"2025-09-24":{"invoice":219022.48,"credit":1777.51},"2025-09-25":{"invoice":228615.41,"credit":3519.76},"2025-09-26":{"invoice":226933.9,"credit":1959.95},"2025-09-27":{"invoice":139291.34,"credit":1475.16},"2025-09-29":{"invoice":281977.99,"credit":2397.13},"2025-09-30":{"invoice":249245.0,"credit":2563.81},"2025-10-01":{"invoice":263527.95,"credit":4432.25},"2025-10-02":{"invoice":230739.8,"credit":4494.35},"2025-10-03":{"invoice":239917.77,"credit":905.79},"2025-10-04":{"invoice":117624.79,"credit":2852.27},"2025-10-06":{"invoice":261432.85,"credit":4148.22},"2025-10-07":{"invoice":226902.44,"credit":1233.48},"2025-10-08":{"invoice":228533.48,"credit":2107.59},"2025-10-09":{"invoice":209174.43,"credit":4990.27},"2025-10-10":{"invoice":231395.62,"credit":4159.97},"2025-10-11":{"invoice":132570.28,"credit":1049.91},"2025-10-13":{"invoice":267403.44,"credit":2987.62},"2025-10-14":{"invoice":233687.75,"credit":2980.94},"2025-10-15":{"invoice":242413.31,"credit":5011.05},"2025-10-16":{"invoice":217116.47,"credit":4030.13},"2025-10-17":{"invoice":239686.51,"credit":8063.29},"2025-10-18":{"invoice":135275.61,"credit":130.77},"2025-10-19":{"invoice":2.44,"credit":0.0},"2025-10-20":{"invoice":261402.01,"credit":3458.16},"2025-10-21":{"invoice":226146.2,"credit":3692.48},"2025-10-22":{"invoice":214637.07,"credit":4573.82},"2025-10-23":{"invoice":204470.12,"credit":1378.82},"2025-10-24":{"invoice":217974.89,"credit":2316.19},"2025-10-25":{"invoice":146323.49,"credit":613.53},"2025-10-26":{"invoice":26.4,"credit":0.0},"2025-10-27":{"invoice":190345.29,"credit":1970.13},"2025-10-28":{"invoice":160554.67,"credit":1425.76},"2025-10-29":{"invoice":188033.55,"credit":2136.92},"2025-10-30":{"invoice":171328.05,"credit":3359.14},"2025-10-31":{"invoice":208131.88,"credit":2215.58},"2025-11-01":{"invoice":141575.01,"credit":2202.86},"2025-11-03":{"invoice":266556.08,"credit":3146.12},"2025-11-04":{"invoice":233955.64,"credit":3899.82},"2025-11-05":{"invoice":240717.34,"credit":2793.14},"2025-11-06":{"invoice":221427.81,"credit":2357.18},"2025-11-07":{"invoice":213650.56,"credit":731.58},"2025-11-08":{"invoice":129871.82,"credit":4228.1},"2025-11-09":{"invoice":115.72,"credit":0.0},"2025-11-10":{"invoice":268348.84,"credit":2035.9},"2025-11-11":{"invoice":225237.03,"credit":2485.19},"2025-11-12":{"invoice":228266.56,"credit":3546.55},"2025-11-13":{"invoice":209428.13,"credit":3664.13},"2025-11-14":{"invoice":230395.96,"credit":1506.88},"2025-11-15":{"invoice":113276.42,"credit":105.23},"2025-11-16":{"invoice":33.57,"credit":0.0},"2025-11-17":{"invoice":271174.83,"credit":8173.4},"2025-11-18":{"invoice":219555.15,"credit":3337.23},"2025-11-19":{"invoice":225440.7,"credit":922.02},"2025-11-20":{"invoice":215086.59,"credit":5196.75},"2025-11-21":{"invoice":226689.26,"credit":2440.38},"2025-11-22":{"invoice":127245.05,"credit":1376.95},"2025-11-23":{"invoice":0.0,"credit":0.0},"2025-11-24":{"invoice":274067.24,"credit":2523.27},"2025-11-25":{"invoice":227430.47,"credit":3018.29},"2025-11-26":{"invoice":242443.0,"credit":2603.21},"2025-11-27":{"invoice":219120.16,"credit":3353.04},"2025-11-28":{"invoice":231354.49,"credit":2254.57},"2025-11-29":{"invoice":133469.71,"credit":0.0},"2025-11-30":{"invoice":2.4,"credit":0.0},"2025-12-01":{"invoice":287655.84,"credit":4478.71},"2025-12-02":{"invoice":234366.22,"credit":2249.97},"2025-12-03":{"invoice":234483.18,"credit":4175.33},"2025-12-04":{"invoice":230948.11,"credit":3186.81},"2025-12-05":{"invoice":235629.79,"credit":4304.83},"2025-12-06":{"invoice":132566.16,"credit":1278.75},"2025-12-07":{"invoice":10.22,"credit":0.0},"2025-12-08":{"invoice":291221.51,"credit":2439.43},"2025-12-09":{"invoice":238443.15,"credit":5565.39},"2025-12-10":{"invoice":232205.15,"credit":4417.87},"2025-12-11":{"invoice":224073.74,"credit":3634.53},"2025-12-12":{"invoice":234425.73,"credit":3921.06},"2025-12-13":{"invoice":144129.56,"credit":35.99},"2025-12-14":{"invoice":50.93,"credit":0.0},"2025-12-15":{"invoice":292969.46,"credit":6514.32},"2025-12-16":{"invoice":207396.91,"credit":3887.62},"2025-12-17":{"invoice":229980.97,"credit":2150.57},"2025-12-18":{"invoice":198758.16,"credit":2978.74},"2025-12-19":{"invoice":242892.32,"credit":15769.68},"2025-12-20":{"invoice":171297.49,"credit":905.67},"2025-12-21":{"invoice":103.96,"credit":103.96},"2025-12-22":{"invoice":237306.56,"credit":1954.62},"2025-12-23":{"invoice":171880.08,"credit":2186.9},"2025-12-24":{"invoice":181786.12,"credit":338.06},"2025-12-25":{"invoice":0.0,"credit":0.0},"2025-12-27":{"invoice":121049.27,"credit":67.96},"2025-12-29":{"invoice":183971.65,"credit":2907.52},"2025-12-30":{"invoice":156372.74,"credit":2033.41},"2025-12-31":{"invoice":210209.5,"credit":2365.03},"2026-01-01":{"invoice":164.2,"credit":149.9},"2026-01-02":{"invoice":184403.78,"credit":924.56},"2026-01-03":{"invoice":133860.54,"credit":384.02},"2026-01-04":{"invoice":86.17,"credit":0.0},"2026-01-05":{"invoice":208028.68,"credit":21943.41},"2026-01-06":{"invoice":174470.34,"credit":14293.81},"2026-01-07":{"invoice":230681.51,"credit":3805.24},"2026-01-08":{"invoice":218793.93,"credit":4180.16},"2026-01-09":{"invoice":152002.75,"credit":8597.89},"2026-01-10":{"invoice":88350.77,"credit":1147.87},"2026-01-11":{"invoice":1.2,"credit":0.0},"2026-01-12":{"invoice":246485.1,"credit":1560.15},"2026-01-13":{"invoice":198699.63,"credit":3281.36},"2026-01-14":{"invoice":212525.22,"credit":2107.54},"2026-01-15":{"invoice":192288.77,"credit":7903.37},"2026-01-16":{"invoice":195128.41,"credit":2616.58},"2026-01-17":{"invoice":100382.94,"credit":1823.35},"2026-01-18":{"invoice":29.32,"credit":0.0},"2026-01-19":{"invoice":254478.37,"credit":2920.03},"2026-01-20":{"invoice":206137.54,"credit":2014.44},"2026-01-21":{"invoice":206495.2,"credit":2207.69},"2026-01-22":{"invoice":194619.58,"credit":2448.42},"2026-01-23":{"invoice":199283.61,"credit":793.35},"2026-01-24":{"invoice":112429.39,"credit":0.0},"2026-01-25":{"invoice":4.64,"credit":0.0},"2026-01-26":{"invoice":259219.48,"credit":3188.77},"2026-01-27":{"invoice":207854.7,"credit":2636.3},"2026-01-28":{"invoice":210013.78,"credit":2214.36},"2026-01-29":{"invoice":197939.97,"credit":2682.07},"2026-01-30":{"invoice":207303.25,"credit":3319.88},"2026-01-31":{"invoice":113496.77,"credit":632.3},"2026-02-02":{"invoice":275078.19,"credit":2076.76},"2026-02-03":{"invoice":218866.46,"credit":1540.2},"2026-02-04":{"invoice":233832.99,"credit":3542.43},"2026-02-05":{"invoice":208987.43,"credit":2129.72},"2026-02-06":{"invoice":214702.64,"credit":1280.34},"2026-02-07":{"invoice":126356.83,"credit":0.0},"2026-02-08":{"invoice":33.35,"credit":0.0},"2026-02-09":{"invoice":260137.25,"credit":5720.39},"2026-02-10":{"invoice":215788.77,"credit":2876.16},"2026-02-11":{"invoice":202318.24,"credit":2636.08},"2026-02-12":{"invoice":212802.85,"credit":5370.11},"2026-02-13":{"invoice":238403.59,"credit":3523.84},"2026-02-14":{"invoice":146266.49,"credit":1357.22},"2026-02-15":{"invoice":46.57,"credit":0.0},"2026-02-16":{"invoice":216680.83,"credit":2287.51},"2026-02-17":{"invoice":135135.18,"credit":931.11},"2026-02-18":{"invoice":165349.03,"credit":970.99},"2026-02-19":{"invoice":148671.24,"credit":2102.8},"2026-02-20":{"invoice":208400.32,"credit":2303.12},"2026-02-21":{"invoice":154708.44,"credit":88.31},"2026-02-22":{"invoice":23.64,"credit":0.0},"2026-02-23":{"invoice":304423.86,"credit":7771.73},"2026-02-24":{"invoice":227450.68,"credit":4877.06},"2026-02-25":{"invoice":237190.68,"credit":3621.31},"2026-02-26":{"invoice":229509.26,"credit":2465.54},"2026-02-27":{"invoice":239908.42,"credit":2484.8},"2026-02-28":{"invoice":132601.01,"credit":1503.44},"2026-03-01":{"invoice":58.36,"credit":0.0},"2026-03-02":{"invoice":313348.58,"credit":6768.27},"2026-03-03":{"invoice":231903.31,"credit":3658.39},"2026-03-04":{"invoice":234157.82,"credit":5918.82},"2026-03-05":{"invoice":233417.7,"credit":2076.99},"2026-03-06":{"invoice":246951.97,"credit":2586.94},"2026-03-07":{"invoice":137054.58,"credit":0.0},"2026-03-08":{"invoice":3.1,"credit":0.0},"2026-03-09":{"invoice":302393.57,"credit":8073.03},"2026-03-10":{"invoice":238466.79,"credit":5251.55},"2026-03-11":{"invoice":250365.33,"credit":973.2},"2026-03-12":{"invoice":237291.38,"credit":1605.25},"2026-03-13":{"invoice":273731.35,"credit":5111.79},"2026-03-14":{"invoice":166734.05,"credit":2250.18},"2026-03-15":{"invoice":70.85,"credit":0.0},"2026-03-16":{"invoice":286669.56,"credit":4875.13},"2026-03-17":{"invoice":232649.21,"credit":3954.5},"2026-03-18":{"invoice":225142.85,"credit":1607.5},"2026-03-19":{"invoice":228911.26,"credit":2628.72},"2026-03-20":{"invoice":269244.48,"credit":2263.3},"2026-03-21":{"invoice":159573.87,"credit":672.23},"2026-03-22":{"invoice":523.07,"credit":157.62},"2026-03-23":{"invoice":295895.25,"credit":6897.49},"2026-03-24":{"invoice":246180.6,"credit":4687.52},"2026-03-25":{"invoice":242336.4,"credit":6157.89},"2026-03-26":{"invoice":244025.77,"credit":3251.61},"2026-03-27":{"invoice":267658.24,"credit":3349.36},"2026-03-28":{"invoice":181617.85,"credit":3335.33},"2026-03-29":{"invoice":0.0,"credit":0.0},"2026-03-30":{"invoice":232880.66,"credit":1512.66},"2026-03-31":{"invoice":163490.3,"credit":3273.73},"2026-04-01":{"invoice":240118.94,"credit":4777.53},"2026-04-02":{"invoice":217046.81,"credit":2917.83},"2026-04-03":{"invoice":270961.73,"credit":1684.66},"2026-04-04":{"invoice":228575.06,"credit":1821.42},"2026-04-05":{"invoice":360.03,"credit":191.81},"2026-04-06":{"invoice":217393.9,"credit":2607.39},"2026-04-07":{"invoice":201679.43,"credit":2154.57},"2026-04-08":{"invoice":234941.97,"credit":2351.64},"2026-04-09":{"invoice":227193.08,"credit":11906.68},"2026-04-10":{"invoice":255220.71,"credit":2916.88},"2026-04-11":{"invoice":183448.16,"credit":1115.18},"2026-04-12":{"invoice":36.09,"credit":0.0},"2026-04-13":{"invoice":281014.41,"credit":3457.15},"2026-04-14":{"invoice":232461.83,"credit":2820.15},"2026-04-15":{"invoice":270071.3,"credit":2086.42},"2026-04-16":{"invoice":224242.02,"credit":3496.13},"2026-04-17":{"invoice":258501.09,"credit":2626.86},"2026-04-18":{"invoice":157379.67,"credit":1424.07},"2026-04-19":{"invoice":0.0,"credit":0.0},"2026-04-20":{"invoice":323249.1,"credit":7386.24},"2026-04-21":{"invoice":259729.68,"credit":4248.97},"2026-04-22":{"invoice":266467.14,"credit":3527.05},"2026-04-23":{"invoice":254701.68,"credit":2800.35},"2026-04-24":{"invoice":287821.78,"credit":2301.81},"2026-04-25":{"invoice":195795.41,"credit":3130.89},"2026-04-26":{"invoice":72.4,"credit":0.0},"2026-04-27":{"invoice":347017.72,"credit":2839.77},"2026-04-28":{"invoice":255568.3,"credit":9209.78},"2026-04-29":{"invoice":272268.01,"credit":2325.92},"2026-04-30":{"invoice":300685.93,"credit":2543.35},"2026-05-01":{"invoice":343821.2,"credit":13673.99},"2026-05-02":{"invoice":211504.47,"credit":0.0},"2026-05-03":{"invoice":57.5,"credit":0.0},"2026-05-04":{"invoice":210345.04,"credit":7659.17}};
+  const DATA = {"2024-09-30":{"invoice":206634.17,"credit":2955.55},"2024-10-01":{"invoice":177273.02,"credit":2267.8},"2024-10-02":{"invoice":174961.06,"credit":3961.17},"2024-10-03":{"invoice":163209.86,"credit":2095.17},"2024-10-04":{"invoice":183573.77,"credit":2256.47},"2024-10-05":{"invoice":114611.73,"credit":1417.64},"2024-10-06":{"invoice":3.88,"credit":0.0},"2024-10-07":{"invoice":196267.47,"credit":1881.41},"2024-10-08":{"invoice":159580.38,"credit":1533.31},"2024-10-09":{"invoice":161964.67,"credit":1734.18},"2024-10-10":{"invoice":166087.7,"credit":869.39},"2024-10-11":{"invoice":173739.0,"credit":3430.32},"2024-10-12":{"invoice":110992.12,"credit":101.85},"2024-10-13":{"invoice":5.01,"credit":23.39},"2024-10-14":{"invoice":197383.2,"credit":2245.4},"2024-10-15":{"invoice":165687.43,"credit":554.05},"2024-10-16":{"invoice":176106.23,"credit":2836.18},"2024-10-17":{"invoice":161686.79,"credit":2118.51},"2024-10-18":{"invoice":172971.01,"credit":1538.8},"2024-10-19":{"invoice":112076.5,"credit":324.68},"2024-10-20":{"invoice":14.86,"credit":15.85},"2024-10-21":{"invoice":192301.18,"credit":828.57},"2024-10-22":{"invoice":179363.92,"credit":3871.34},"2024-10-23":{"invoice":174040.76,"credit":1718.99},"2024-10-24":{"invoice":175876.13,"credit":4053.68},"2024-10-25":{"invoice":179777.77,"credit":2087.26},"2024-10-26":{"invoice":133281.34,"credit":1003.37},"2024-10-28":{"invoice":170793.56,"credit":991.81},"2024-10-29":{"invoice":134860.24,"credit":945.09},"2024-10-30":{"invoice":168224.06,"credit":663.07},"2024-10-31":{"invoice":140605.56,"credit":2305.58},"2024-11-01":{"invoice":185162.69,"credit":614.12},"2024-11-02":{"invoice":137458.86,"credit":459.54},"2024-11-04":{"invoice":205309.01,"credit":3275.41},"2024-11-05":{"invoice":153588.82,"credit":1459.26},"2024-11-06":{"invoice":169004.53,"credit":1395.51},"2024-11-07":{"invoice":171325.53,"credit":1766.54},"2024-11-08":{"invoice":163121.37,"credit":989.24},"2024-11-09":{"invoice":115360.07,"credit":367.96},"2024-11-11":{"invoice":189233.9,"credit":3787.48},"2024-11-12":{"invoice":174900.92,"credit":2686.54},"2024-11-13":{"invoice":155307.7,"credit":4315.04},"2024-11-14":{"invoice":171643.04,"credit":5266.18},"2024-11-15":{"invoice":183089.38,"credit":1037.65},"2024-11-16":{"invoice":99770.37,"credit":0.0},"2024-11-18":{"invoice":206704.29,"credit":4432.2},"2024-11-19":{"invoice":172337.24,"credit":2553.39},"2024-11-20":{"invoice":156404.02,"credit":11924.72},"2024-11-21":{"invoice":162517.99,"credit":2758.51},"2024-11-22":{"invoice":172505.77,"credit":1876.06},"2024-11-23":{"invoice":103586.75,"credit":591.06},"2024-11-25":{"invoice":181047.67,"credit":1642.98},"2024-11-26":{"invoice":156901.56,"credit":2254.42},"2024-11-27":{"invoice":163132.23,"credit":1991.17},"2024-11-28":{"invoice":174374.7,"credit":2522.15},"2024-11-29":{"invoice":175037.77,"credit":1468.97},"2024-11-30":{"invoice":113416.02,"credit":1048.97},"2024-12-02":{"invoice":206856.46,"credit":1564.53},"2024-12-03":{"invoice":157942.27,"credit":1188.54},"2024-12-04":{"invoice":188475.94,"credit":2069.59},"2024-12-05":{"invoice":185765.47,"credit":2744.01},"2024-12-06":{"invoice":182593.46,"credit":1618.06},"2024-12-07":{"invoice":99781.3,"credit":19558.02},"2024-12-08":{"invoice":760.91,"credit":0.0},"2024-12-09":{"invoice":180782.37,"credit":6925.63},"2024-12-10":{"invoice":166941.96,"credit":371.1},"2024-12-11":{"invoice":165054.19,"credit":3301.27},"2024-12-12":{"invoice":183824.74,"credit":3217.35},"2024-12-13":{"invoice":178321.41,"credit":2340.11},"2024-12-14":{"invoice":116995.05,"credit":1034.59},"2024-12-15":{"invoice":25.89,"credit":495.0},"2024-12-16":{"invoice":197156.53,"credit":3460.61},"2024-12-17":{"invoice":173298.82,"credit":3172.06},"2024-12-18":{"invoice":158535.72,"credit":2735.53},"2024-12-19":{"invoice":183272.69,"credit":2423.34},"2024-12-20":{"invoice":183815.55,"credit":2924.97},"2024-12-21":{"invoice":135967.96,"credit":264.75},"2024-12-23":{"invoice":197542.11,"credit":3320.95},"2024-12-24":{"invoice":134662.89,"credit":2284.39},"2024-12-25":{"invoice":0.0,"credit":0.0},"2024-12-27":{"invoice":24912.46,"credit":12288.68},"2024-12-28":{"invoice":171644.1,"credit":1969.87},"2024-12-30":{"invoice":189272.95,"credit":1829.96},"2024-12-31":{"invoice":159671.33,"credit":1585.14},"2025-01-01":{"invoice":0.0,"credit":0.0},"2025-01-02":{"invoice":25510.08,"credit":548.35},"2025-01-03":{"invoice":197483.99,"credit":2576.53},"2025-01-04":{"invoice":105218.02,"credit":0.0},"2025-01-06":{"invoice":133950.19,"credit":2554.21},"2025-01-07":{"invoice":141707.08,"credit":3232.86},"2025-01-08":{"invoice":145655.26,"credit":2397.1},"2025-01-09":{"invoice":135080.71,"credit":7138.82},"2025-01-10":{"invoice":118386.47,"credit":1943.8},"2025-01-11":{"invoice":70344.25,"credit":205.41},"2025-01-13":{"invoice":138700.61,"credit":1969.8},"2025-01-14":{"invoice":141362.29,"credit":1915.93},"2025-01-15":{"invoice":133198.11,"credit":762.56},"2025-01-16":{"invoice":136373.11,"credit":1437.74},"2025-01-17":{"invoice":140544.07,"credit":2514.84},"2025-01-18":{"invoice":80551.31,"credit":278.21},"2025-01-20":{"invoice":172045.19,"credit":2162.49},"2025-01-21":{"invoice":139974.02,"credit":1023.29},"2025-01-22":{"invoice":153328.17,"credit":1790.78},"2025-01-23":{"invoice":147073.93,"credit":1536.51},"2025-01-24":{"invoice":141119.61,"credit":2269.02},"2025-01-25":{"invoice":81689.43,"credit":312.88},"2025-01-27":{"invoice":165824.17,"credit":1434.47},"2025-01-28":{"invoice":148143.5,"credit":1491.71},"2025-01-29":{"invoice":156217.54,"credit":3732.64},"2025-01-30":{"invoice":156581.02,"credit":1542.05},"2025-01-31":{"invoice":155355.38,"credit":683.17},"2025-02-01":{"invoice":108321.93,"credit":0.0},"2025-02-03":{"invoice":173297.71,"credit":1375.83},"2025-02-04":{"invoice":146716.8,"credit":2077.95},"2025-02-05":{"invoice":152390.06,"credit":1596.76},"2025-02-06":{"invoice":158157.82,"credit":1111.44},"2025-02-07":{"invoice":156775.19,"credit":1022.44},"2025-02-08":{"invoice":107972.53,"credit":744.91},"2025-02-10":{"invoice":195590.2,"credit":1827.24},"2025-02-11":{"invoice":148563.36,"credit":2728.16},"2025-02-12":{"invoice":180991.2,"credit":1302.73},"2025-02-13":{"invoice":180734.32,"credit":1727.16},"2025-02-14":{"invoice":179845.03,"credit":2099.66},"2025-02-15":{"invoice":104110.09,"credit":0.0},"2025-02-16":{"invoice":20.07,"credit":0.0},"2025-02-17":{"invoice":198751.94,"credit":1380.83},"2025-02-18":{"invoice":168777.66,"credit":2001.57},"2025-02-19":{"invoice":172283.34,"credit":992.43},"2025-02-20":{"invoice":172224.42,"credit":1838.52},"2025-02-21":{"invoice":171197.5,"credit":1041.43},"2025-02-22":{"invoice":126138.12,"credit":449.68},"2025-02-24":{"invoice":141832.14,"credit":1857.96},"2025-02-25":{"invoice":118117.21,"credit":1746.14},"2025-02-26":{"invoice":114587.6,"credit":934.03},"2025-02-27":{"invoice":126483.52,"credit":2191.67},"2025-02-28":{"invoice":174736.49,"credit":3980.86},"2025-03-01":{"invoice":127846.95,"credit":0.0},"2025-03-03":{"invoice":216633.95,"credit":2220.34},"2025-03-04":{"invoice":183606.38,"credit":228.46},"2025-03-05":{"invoice":193648.51,"credit":3787.9},"2025-03-06":{"invoice":182931.82,"credit":1233.21},"2025-03-07":{"invoice":198530.18,"credit":1657.93},"2025-03-08":{"invoice":111541.17,"credit":1516.74},"2025-03-09":{"invoice":60.67,"credit":0.0},"2025-03-10":{"invoice":233104.01,"credit":2808.45},"2025-03-11":{"invoice":182450.1,"credit":3315.08},"2025-03-12":{"invoice":182878.06,"credit":2253.0},"2025-03-13":{"invoice":173637.61,"credit":1751.74},"2025-03-14":{"invoice":203998.56,"credit":1556.32},"2025-03-15":{"invoice":121205.09,"credit":0.0},"2025-03-16":{"invoice":317.69,"credit":0.0},"2025-03-17":{"invoice":205765.3,"credit":2629.4},"2025-03-18":{"invoice":176130.2,"credit":2720.88},"2025-03-19":{"invoice":203183.0,"credit":1142.27},"2025-03-20":{"invoice":195728.24,"credit":2857.43},"2025-03-21":{"invoice":214694.88,"credit":4265.72},"2025-03-22":{"invoice":113747.99,"credit":2621.39},"2025-03-23":{"invoice":9.58,"credit":0.0},"2025-03-24":{"invoice":229382.81,"credit":2564.27},"2025-03-25":{"invoice":181673.6,"credit":1290.13},"2025-03-26":{"invoice":202074.53,"credit":1779.92},"2025-03-27":{"invoice":198684.22,"credit":1877.48},"2025-03-28":{"invoice":246456.01,"credit":1926.56},"2025-03-29":{"invoice":151659.55,"credit":0.0},"2025-03-30":{"invoice":79.73,"credit":0.0},"2025-03-31":{"invoice":213413.68,"credit":6053.94},"2025-04-01":{"invoice":185240.46,"credit":2552.79},"2025-04-02":{"invoice":207368.21,"credit":1210.33},"2025-04-03":{"invoice":210592.49,"credit":2850.03},"2025-04-04":{"invoice":240849.95,"credit":1992.44},"2025-04-05":{"invoice":143692.22,"credit":3042.82},"2025-04-07":{"invoice":259960.8,"credit":1778.32},"2025-04-08":{"invoice":205516.98,"credit":7645.28},"2025-04-09":{"invoice":219610.02,"credit":2476.72},"2025-04-10":{"invoice":216436.42,"credit":3221.2},"2025-04-11":{"invoice":255096.86,"credit":2779.86},"2025-04-12":{"invoice":182597.84,"credit":229.82},"2025-04-13":{"invoice":35.13,"credit":0.0},"2025-04-14":{"invoice":198322.44,"credit":3578.07},"2025-04-15":{"invoice":138510.57,"credit":3104.53},"2025-04-16":{"invoice":172445.23,"credit":1892.66},"2025-04-17":{"invoice":186683.78,"credit":2997.88},"2025-04-18":{"invoice":255251.83,"credit":1452.24},"2025-04-19":{"invoice":196298.8,"credit":14.59},"2025-04-20":{"invoice":24.4,"credit":0.0},"2025-04-21":{"invoice":186614.91,"credit":3030.7},"2025-04-22":{"invoice":146647.33,"credit":893.01},"2025-04-23":{"invoice":161965.47,"credit":642.03},"2025-04-24":{"invoice":148912.54,"credit":2809.22},"2025-04-25":{"invoice":198138.34,"credit":1301.6},"2025-04-26":{"invoice":148002.75,"credit":1329.2},"2025-04-27":{"invoice":25.09,"credit":0.0},"2025-04-28":{"invoice":219416.29,"credit":3880.33},"2025-04-29":{"invoice":186529.24,"credit":3643.2},"2025-04-30":{"invoice":232095.37,"credit":1041.7},"2025-05-01":{"invoice":227583.84,"credit":4268.42},"2025-05-02":{"invoice":266172.7,"credit":2139.41},"2025-05-03":{"invoice":185682.08,"credit":923.04},"2025-05-04":{"invoice":7.16,"credit":0.0},"2025-05-05":{"invoice":168132.79,"credit":2003.45},"2025-05-06":{"invoice":217719.11,"credit":2540.82},"2025-05-07":{"invoice":233261.08,"credit":1133.7},"2025-05-08":{"invoice":195928.07,"credit":3327.64},"2025-05-09":{"invoice":230442.01,"credit":2706.41},"2025-05-10":{"invoice":153712.61,"credit":229.47},"2025-05-12":{"invoice":240980.97,"credit":2805.58},"2025-05-13":{"invoice":171791.72,"credit":1898.82},"2025-05-14":{"invoice":213739.12,"credit":59.97},"2025-05-15":{"invoice":212549.03,"credit":4167.02},"2025-05-16":{"invoice":239152.13,"credit":1391.89},"2025-05-17":{"invoice":159206.78,"credit":1120.74},"2025-05-18":{"invoice":0.0,"credit":0.0},"2025-05-19":{"invoice":245033.08,"credit":938.56},"2025-05-20":{"invoice":187799.39,"credit":2315.13},"2025-05-21":{"invoice":225987.17,"credit":965.26},"2025-05-22":{"invoice":221680.02,"credit":2272.27},"2025-05-23":{"invoice":253071.22,"credit":6135.16},"2025-05-24":{"invoice":193220.35,"credit":47.5},"2025-05-26":{"invoice":168275.61,"credit":2865.53},"2025-05-27":{"invoice":147540.19,"credit":3999.24},"2025-05-28":{"invoice":179396.75,"credit":329.19},"2025-05-29":{"invoice":191631.67,"credit":6056.72},"2025-05-30":{"invoice":225253.88,"credit":2779.51},"2025-05-31":{"invoice":185032.25,"credit":1585.19},"2025-06-02":{"invoice":252832.61,"credit":5014.59},"2025-06-03":{"invoice":194817.83,"credit":3017.78},"2025-06-04":{"invoice":210617.31,"credit":711.59},"2025-06-05":{"invoice":207207.19,"credit":3664.24},"2025-06-06":{"invoice":221804.99,"credit":2138.4},"2025-06-07":{"invoice":153137.65,"credit":384.4},"2025-06-08":{"invoice":2.24,"credit":0.0},"2025-06-09":{"invoice":229005.49,"credit":2410.27},"2025-06-10":{"invoice":187466.9,"credit":3805.81},"2025-06-11":{"invoice":211614.4,"credit":1850.72},"2025-06-12":{"invoice":216072.26,"credit":2661.67},"2025-06-13":{"invoice":234164.8,"credit":2353.83},"2025-06-14":{"invoice":167323.76,"credit":694.1},"2025-06-15":{"invoice":2.5,"credit":0.0},"2025-06-16":{"invoice":245347.27,"credit":3433.29},"2025-06-17":{"invoice":193964.29,"credit":1780.53},"2025-06-18":{"invoice":228076.79,"credit":1901.95},"2025-06-19":{"invoice":221194.9,"credit":2774.89},"2025-06-20":{"invoice":259692.38,"credit":1404.53},"2025-06-21":{"invoice":168663.42,"credit":1008.45},"2025-06-23":{"invoice":227978.16,"credit":2879.77},"2025-06-24":{"invoice":198746.84,"credit":2512.86},"2025-06-25":{"invoice":216101.36,"credit":5331.9},"2025-06-26":{"invoice":207101.84,"credit":1868.0},"2025-06-27":{"invoice":238654.49,"credit":4925.68},"2025-06-28":{"invoice":153200.18,"credit":0.0},"2025-06-30":{"invoice":238154.64,"credit":2318.25},"2025-07-01":{"invoice":211765.14,"credit":2732.89},"2025-07-02":{"invoice":225214.67,"credit":2732.15},"2025-07-03":{"invoice":208714.76,"credit":5396.69},"2025-07-04":{"invoice":242463.26,"credit":878.65},"2025-07-05":{"invoice":155262.33,"credit":1030.03},"2025-07-07":{"invoice":238411.79,"credit":4156.33},"2025-07-08":{"invoice":189350.43,"credit":2078.45},"2025-07-09":{"invoice":197827.54,"credit":1336.76},"2025-07-10":{"invoice":221486.71,"credit":5035.55},"2025-07-11":{"invoice":258422.84,"credit":3554.51},"2025-07-12":{"invoice":193339.95,"credit":1525.28},"2025-07-13":{"invoice":0.0,"credit":17.5},"2025-07-14":{"invoice":254379.16,"credit":2172.68},"2025-07-15":{"invoice":183938.67,"credit":1940.35},"2025-07-16":{"invoice":203517.17,"credit":3467.31},"2025-07-17":{"invoice":193593.02,"credit":2065.82},"2025-07-18":{"invoice":236945.94,"credit":3999.25},"2025-07-19":{"invoice":179993.21,"credit":1612.1},"2025-07-20":{"invoice":83.8,"credit":46.0},"2025-07-21":{"invoice":200268.85,"credit":2053.66},"2025-07-22":{"invoice":149464.41,"credit":1908.51},"2025-07-23":{"invoice":179521.55,"credit":2886.74},"2025-07-24":{"invoice":178495.8,"credit":2044.05},"2025-07-25":{"invoice":240261.47,"credit":778.43},"2025-07-26":{"invoice":206464.96,"credit":0.0},"2025-07-27":{"invoice":39.37,"credit":22.41},"2025-07-28":{"invoice":228482.98,"credit":3437.33},"2025-07-29":{"invoice":177191.19,"credit":4051.26},"2025-07-30":{"invoice":200809.61,"credit":1704.48},"2025-07-31":{"invoice":196138.66,"credit":1567.89},"2025-08-01":{"invoice":234249.71,"credit":2493.28},"2025-08-02":{"invoice":204272.81,"credit":1260.78},"2025-08-03":{"invoice":29.02,"credit":0.0},"2025-08-04":{"invoice":222615.39,"credit":1994.63},"2025-08-05":{"invoice":153835.69,"credit":982.76},"2025-08-06":{"invoice":189618.84,"credit":2197.67},"2025-08-07":{"invoice":206975.68,"credit":3198.54},"2025-08-08":{"invoice":252968.45,"credit":1406.78},"2025-08-09":{"invoice":216982.38,"credit":1713.54},"2025-08-10":{"invoice":139.52,"credit":0.0},"2025-08-11":{"invoice":243976.7,"credit":2088.79},"2025-08-12":{"invoice":186472.83,"credit":2075.12},"2025-08-13":{"invoice":218508.84,"credit":2047.49},"2025-08-14":{"invoice":225836.8,"credit":2997.2},"2025-08-15":{"invoice":255819.48,"credit":2125.99},"2025-08-16":{"invoice":225265.55,"credit":229.86},"2025-08-17":{"invoice":35.45,"credit":0.0},"2025-08-18":{"invoice":268540.03,"credit":7481.16},"2025-08-19":{"invoice":185509.36,"credit":1460.3},"2025-08-20":{"invoice":203762.55,"credit":638.11},"2025-08-21":{"invoice":221600.69,"credit":1526.97},"2025-08-22":{"invoice":289366.23,"credit":2335.43},"2025-08-23":{"invoice":254474.4,"credit":832.79},"2025-08-24":{"invoice":17.94,"credit":0.0},"2025-08-25":{"invoice":219658.25,"credit":1189.83},"2025-08-26":{"invoice":197771.52,"credit":2693.12},"2025-08-27":{"invoice":201071.8,"credit":1046.0},"2025-08-28":{"invoice":201305.43,"credit":4198.46},"2025-08-29":{"invoice":245562.97,"credit":2060.1},"2025-08-30":{"invoice":186964.15,"credit":9.97},"2025-08-31":{"invoice":16.59,"credit":8.82},"2025-09-01":{"invoice":280222.14,"credit":2928.84},"2025-09-02":{"invoice":239532.91,"credit":3782.86},"2025-09-03":{"invoice":215518.7,"credit":2365.91},"2025-09-04":{"invoice":215444.99,"credit":5729.24},"2025-09-05":{"invoice":252905.5,"credit":1352.25},"2025-09-06":{"invoice":144564.17,"credit":1953.24},"2025-09-08":{"invoice":260221.1,"credit":1533.44},"2025-09-09":{"invoice":215351.2,"credit":3724.89},"2025-09-10":{"invoice":230751.21,"credit":2774.35},"2025-09-11":{"invoice":229458.16,"credit":2212.16},"2025-09-12":{"invoice":245833.88,"credit":7633.12},"2025-09-13":{"invoice":134031.35,"credit":776.86},"2025-09-14":{"invoice":36.56,"credit":2.93},"2025-09-15":{"invoice":244455.02,"credit":3246.38},"2025-09-16":{"invoice":227916.73,"credit":1376.95},"2025-09-17":{"invoice":223343.31,"credit":2986.71},"2025-09-18":{"invoice":220015.81,"credit":2347.62},"2025-09-19":{"invoice":225032.81,"credit":3663.01},"2025-09-20":{"invoice":140214.61,"credit":313.2},"2025-09-21":{"invoice":83.56,"credit":0.0},"2025-09-22":{"invoice":264253.66,"credit":5033.17},"2025-09-23":{"invoice":237797.21,"credit":2371.43},"2025-09-24":{"invoice":219022.48,"credit":1777.51},"2025-09-25":{"invoice":228615.41,"credit":3519.76},"2025-09-26":{"invoice":226933.9,"credit":1959.95},"2025-09-27":{"invoice":139291.34,"credit":1475.16},"2025-09-29":{"invoice":281977.99,"credit":2397.13},"2025-09-30":{"invoice":249245.0,"credit":2563.81},"2025-10-01":{"invoice":263527.95,"credit":4432.25},"2025-10-02":{"invoice":230739.8,"credit":4494.35},"2025-10-03":{"invoice":239917.77,"credit":905.79},"2025-10-04":{"invoice":117624.79,"credit":2852.27},"2025-10-06":{"invoice":261432.85,"credit":4148.22},"2025-10-07":{"invoice":226902.44,"credit":1233.48},"2025-10-08":{"invoice":228533.48,"credit":2107.59},"2025-10-09":{"invoice":209174.43,"credit":4990.27},"2025-10-10":{"invoice":231395.62,"credit":4159.97},"2025-10-11":{"invoice":132570.28,"credit":1049.91},"2025-10-13":{"invoice":267403.44,"credit":2987.62},"2025-10-14":{"invoice":233687.75,"credit":2980.94},"2025-10-15":{"invoice":242413.31,"credit":5011.05},"2025-10-16":{"invoice":217116.47,"credit":4030.13},"2025-10-17":{"invoice":239686.51,"credit":8063.29},"2025-10-18":{"invoice":135275.61,"credit":130.77},"2025-10-19":{"invoice":2.44,"credit":0.0},"2025-10-20":{"invoice":261402.01,"credit":3458.16},"2025-10-21":{"invoice":226146.2,"credit":3692.48},"2025-10-22":{"invoice":214637.07,"credit":4573.82},"2025-10-23":{"invoice":204470.12,"credit":1378.82},"2025-10-24":{"invoice":217974.89,"credit":2316.19},"2025-10-25":{"invoice":146323.49,"credit":613.53},"2025-10-26":{"invoice":26.4,"credit":0.0},"2025-10-27":{"invoice":190345.29,"credit":1970.13},"2025-10-28":{"invoice":160554.67,"credit":1425.76},"2025-10-29":{"invoice":188033.55,"credit":2136.92},"2025-10-30":{"invoice":171328.05,"credit":3359.14},"2025-10-31":{"invoice":208131.88,"credit":2215.58},"2025-11-01":{"invoice":141575.01,"credit":2202.86},"2025-11-03":{"invoice":266556.08,"credit":3146.12},"2025-11-04":{"invoice":233955.64,"credit":3899.82},"2025-11-05":{"invoice":240717.34,"credit":2793.14},"2025-11-06":{"invoice":221427.81,"credit":2357.18},"2025-11-07":{"invoice":213650.56,"credit":731.58},"2025-11-08":{"invoice":129871.82,"credit":4228.1},"2025-11-09":{"invoice":115.72,"credit":0.0},"2025-11-10":{"invoice":268348.84,"credit":2035.9},"2025-11-11":{"invoice":225237.03,"credit":2485.19},"2025-11-12":{"invoice":228266.56,"credit":3546.55},"2025-11-13":{"invoice":209428.13,"credit":3664.13},"2025-11-14":{"invoice":230395.96,"credit":1506.88},"2025-11-15":{"invoice":113276.42,"credit":105.23},"2025-11-16":{"invoice":33.57,"credit":0.0},"2025-11-17":{"invoice":271174.83,"credit":8173.4},"2025-11-18":{"invoice":219555.15,"credit":3337.23},"2025-11-19":{"invoice":225440.7,"credit":922.02},"2025-11-20":{"invoice":215086.59,"credit":5196.75},"2025-11-21":{"invoice":226689.26,"credit":2440.38},"2025-11-22":{"invoice":127245.05,"credit":1376.95},"2025-11-23":{"invoice":0.0,"credit":0.0},"2025-11-24":{"invoice":274067.24,"credit":2523.27},"2025-11-25":{"invoice":227430.47,"credit":3018.29},"2025-11-26":{"invoice":242443.0,"credit":2603.21},"2025-11-27":{"invoice":219120.16,"credit":3353.04},"2025-11-28":{"invoice":231354.49,"credit":2254.57},"2025-11-29":{"invoice":133469.71,"credit":0.0},"2025-11-30":{"invoice":2.4,"credit":0.0},"2025-12-01":{"invoice":287655.84,"credit":4478.71},"2025-12-02":{"invoice":234366.22,"credit":2249.97},"2025-12-03":{"invoice":234483.18,"credit":4175.33},"2025-12-04":{"invoice":230948.11,"credit":3186.81},"2025-12-05":{"invoice":235629.79,"credit":4304.83},"2025-12-06":{"invoice":132566.16,"credit":1278.75},"2025-12-07":{"invoice":10.22,"credit":0.0},"2025-12-08":{"invoice":291221.51,"credit":2439.43},"2025-12-09":{"invoice":238443.15,"credit":5565.39},"2025-12-10":{"invoice":232205.15,"credit":4417.87},"2025-12-11":{"invoice":224073.74,"credit":3634.53},"2025-12-12":{"invoice":234425.73,"credit":3921.06},"2025-12-13":{"invoice":144129.56,"credit":35.99},"2025-12-14":{"invoice":50.93,"credit":0.0},"2025-12-15":{"invoice":292969.46,"credit":6514.32},"2025-12-16":{"invoice":207396.91,"credit":3887.62},"2025-12-17":{"invoice":229980.97,"credit":2150.57},"2025-12-18":{"invoice":198758.16,"credit":2978.74},"2025-12-19":{"invoice":242892.32,"credit":15769.68},"2025-12-20":{"invoice":171297.49,"credit":905.67},"2025-12-21":{"invoice":103.96,"credit":103.96},"2025-12-22":{"invoice":237306.56,"credit":1954.62},"2025-12-23":{"invoice":171880.08,"credit":2186.9},"2025-12-24":{"invoice":181786.12,"credit":338.06},"2025-12-25":{"invoice":0.0,"credit":0.0},"2025-12-27":{"invoice":121049.27,"credit":67.96},"2025-12-29":{"invoice":183971.65,"credit":2907.52},"2025-12-30":{"invoice":156372.74,"credit":2033.41},"2025-12-31":{"invoice":210209.5,"credit":2365.03},"2026-01-01":{"invoice":164.2,"credit":149.9},"2026-01-02":{"invoice":184403.78,"credit":924.56},"2026-01-03":{"invoice":133860.54,"credit":384.02},"2026-01-04":{"invoice":86.17,"credit":0.0},"2026-01-05":{"invoice":208028.68,"credit":21943.41},"2026-01-06":{"invoice":174470.34,"credit":14293.81},"2026-01-07":{"invoice":230681.51,"credit":3805.24},"2026-01-08":{"invoice":218793.93,"credit":4180.16},"2026-01-09":{"invoice":152002.75,"credit":8597.89},"2026-01-10":{"invoice":88350.77,"credit":1147.87},"2026-01-11":{"invoice":1.2,"credit":0.0},"2026-01-12":{"invoice":246485.1,"credit":1560.15},"2026-01-13":{"invoice":198699.63,"credit":3281.36},"2026-01-14":{"invoice":212525.22,"credit":2107.54},"2026-01-15":{"invoice":192288.77,"credit":7903.37},"2026-01-16":{"invoice":195128.41,"credit":2616.58},"2026-01-17":{"invoice":100382.94,"credit":1823.35},"2026-01-18":{"invoice":29.32,"credit":0.0},"2026-01-19":{"invoice":254478.37,"credit":2920.03},"2026-01-20":{"invoice":206137.54,"credit":2014.44},"2026-01-21":{"invoice":206495.2,"credit":2207.69},"2026-01-22":{"invoice":194619.58,"credit":2448.42},"2026-01-23":{"invoice":199283.61,"credit":793.35},"2026-01-24":{"invoice":112429.39,"credit":0.0},"2026-01-25":{"invoice":4.64,"credit":0.0},"2026-01-26":{"invoice":259219.48,"credit":3188.77},"2026-01-27":{"invoice":207854.7,"credit":2636.3},"2026-01-28":{"invoice":210013.78,"credit":2214.36},"2026-01-29":{"invoice":197939.97,"credit":2682.07},"2026-01-30":{"invoice":207303.25,"credit":3319.88},"2026-01-31":{"invoice":113496.77,"credit":632.3},"2026-02-02":{"invoice":275078.19,"credit":2076.76},"2026-02-03":{"invoice":218866.46,"credit":1540.2},"2026-02-04":{"invoice":233832.99,"credit":3542.43},"2026-02-05":{"invoice":208987.43,"credit":2129.72},"2026-02-06":{"invoice":214702.64,"credit":1280.34},"2026-02-07":{"invoice":126356.83,"credit":0.0},"2026-02-08":{"invoice":33.35,"credit":0.0},"2026-02-09":{"invoice":260137.25,"credit":5720.39},"2026-02-10":{"invoice":215788.77,"credit":2876.16},"2026-02-11":{"invoice":202318.24,"credit":2636.08},"2026-02-12":{"invoice":212802.85,"credit":5370.11},"2026-02-13":{"invoice":238403.59,"credit":3523.84},"2026-02-14":{"invoice":146266.49,"credit":1357.22},"2026-02-15":{"invoice":46.57,"credit":0.0},"2026-02-16":{"invoice":216680.83,"credit":2287.51},"2026-02-17":{"invoice":135135.18,"credit":931.11},"2026-02-18":{"invoice":165349.03,"credit":970.99},"2026-02-19":{"invoice":148671.24,"credit":2102.8},"2026-02-20":{"invoice":208400.32,"credit":2303.12},"2026-02-21":{"invoice":154708.44,"credit":88.31},"2026-02-22":{"invoice":23.64,"credit":0.0},"2026-02-23":{"invoice":304423.86,"credit":7771.73},"2026-02-24":{"invoice":227450.68,"credit":4877.06},"2026-02-25":{"invoice":237190.68,"credit":3621.31},"2026-02-26":{"invoice":229509.26,"credit":2465.54},"2026-02-27":{"invoice":239908.42,"credit":2484.8},"2026-02-28":{"invoice":132601.01,"credit":1503.44},"2026-03-01":{"invoice":58.36,"credit":0.0},"2026-03-02":{"invoice":313348.58,"credit":6768.27},"2026-03-03":{"invoice":231903.31,"credit":3658.39},"2026-03-04":{"invoice":234157.82,"credit":5918.82},"2026-03-05":{"invoice":233417.7,"credit":2076.99},"2026-03-06":{"invoice":246951.97,"credit":2586.94},"2026-03-07":{"invoice":137054.58,"credit":0.0},"2026-03-08":{"invoice":3.1,"credit":0.0},"2026-03-09":{"invoice":302393.57,"credit":8073.03},"2026-03-10":{"invoice":238466.79,"credit":5251.55},"2026-03-11":{"invoice":250365.33,"credit":973.2},"2026-03-12":{"invoice":237291.38,"credit":1605.25},"2026-03-13":{"invoice":273731.35,"credit":5111.79},"2026-03-14":{"invoice":166734.05,"credit":2250.18},"2026-03-15":{"invoice":70.85,"credit":0.0},"2026-03-16":{"invoice":286669.56,"credit":4875.13},"2026-03-17":{"invoice":232649.21,"credit":3954.5},"2026-03-18":{"invoice":225142.85,"credit":1607.5},"2026-03-19":{"invoice":228911.26,"credit":2628.72},"2026-03-20":{"invoice":269244.48,"credit":2263.3},"2026-03-21":{"invoice":159573.87,"credit":672.23},"2026-03-22":{"invoice":523.07,"credit":157.62},"2026-03-23":{"invoice":295895.25,"credit":6897.49},"2026-03-24":{"invoice":246180.6,"credit":4687.52},"2026-03-25":{"invoice":242336.4,"credit":6157.89},"2026-03-26":{"invoice":244025.77,"credit":3251.61},"2026-03-27":{"invoice":267658.24,"credit":3349.36},"2026-03-28":{"invoice":181617.85,"credit":3335.33},"2026-03-29":{"invoice":0.0,"credit":0.0},"2026-03-30":{"invoice":232880.66,"credit":1512.66},"2026-03-31":{"invoice":163490.3,"credit":3273.73},"2026-04-01":{"invoice":240118.94,"credit":4777.53},"2026-04-02":{"invoice":217046.81,"credit":2917.83},"2026-04-03":{"invoice":270961.73,"credit":1684.66},"2026-04-04":{"invoice":228575.06,"credit":1821.42},"2026-04-05":{"invoice":360.03,"credit":191.81},"2026-04-06":{"invoice":217393.9,"credit":2607.39},"2026-04-07":{"invoice":201679.43,"credit":2154.57},"2026-04-08":{"invoice":234941.97,"credit":2351.64},"2026-04-09":{"invoice":227193.08,"credit":11906.68},"2026-04-10":{"invoice":255220.71,"credit":2916.88},"2026-04-11":{"invoice":183448.16,"credit":1115.18},"2026-04-12":{"invoice":36.09,"credit":0.0},"2026-04-13":{"invoice":281014.41,"credit":3457.15},"2026-04-14":{"invoice":232461.83,"credit":2820.15},"2026-04-15":{"invoice":270071.3,"credit":2086.42},"2026-04-16":{"invoice":224242.02,"credit":3496.13},"2026-04-17":{"invoice":258501.09,"credit":2626.86},"2026-04-18":{"invoice":157379.67,"credit":1424.07},"2026-04-19":{"invoice":0.0,"credit":0.0},"2026-04-20":{"invoice":323249.1,"credit":7386.24},"2026-04-21":{"invoice":259729.68,"credit":4248.97},"2026-04-22":{"invoice":266467.14,"credit":3527.05},"2026-04-23":{"invoice":254701.68,"credit":2800.35},"2026-04-24":{"invoice":287821.78,"credit":2301.81},"2026-04-25":{"invoice":195795.41,"credit":3130.89},"2026-04-26":{"invoice":72.4,"credit":0.0},"2026-04-27":{"invoice":347017.72,"credit":2839.77},"2026-04-28":{"invoice":255568.3,"credit":9209.78},"2026-04-29":{"invoice":272268.01,"credit":2325.92},"2026-04-30":{"invoice":300685.93,"credit":2543.35},"2026-05-01":{"invoice":343821.2,"credit":13673.99},"2026-05-02":{"invoice":211504.47,"credit":0.0},"2026-05-03":{"invoice":57.5,"credit":0.0},"2026-05-04":{"invoice":210345.04,"credit":7659.17},"2026-05-05":{"invoice":282679.88,"credit":0.0}};
 
   // === Routes & Drops (from TR1.xlsx, "Day by Day Summary" tab) ===
-  const ROUTES={"2024-09-30":{"runs":46,"drops":590,"kg":70450},"2024-10-01":{"runs":48,"drops":531,"kg":62231},"2024-10-02":{"runs":49,"drops":576,"kg":60294},"2024-10-03":{"runs":48,"drops":579,"kg":55231},"2024-10-04":{"runs":48,"drops":613,"kg":61515},"2024-10-05":{"runs":35,"drops":438,"kg":34868},"2024-10-07":{"runs":48,"drops":588,"kg":68092},"2024-10-08":{"runs":48,"drops":546,"kg":57822},"2024-10-09":{"runs":49,"drops":554,"kg":56544},"2024-10-10":{"runs":49,"drops":576,"kg":57401},"2024-10-11":{"runs":47,"drops":618,"kg":55242},"2024-10-12":{"runs":36,"drops":431,"kg":35343},"2024-10-14":{"runs":47,"drops":592,"kg":67615},"2024-10-15":{"runs":49,"drops":542,"kg":58961},"2024-10-16":{"runs":46,"drops":563,"kg":57106},"2024-10-17":{"runs":47,"drops":536,"kg":57384},"2024-10-18":{"runs":47,"drops":610,"kg":55179},"2024-10-19":{"runs":37,"drops":419,"kg":34574},"2024-10-21":{"runs":47,"drops":555,"kg":64310},"2024-10-22":{"runs":47,"drops":556,"kg":61876},"2024-10-23":{"runs":47,"drops":608,"kg":54960},"2024-10-24":{"runs":50,"drops":568,"kg":57503},"2024-10-25":{"runs":47,"drops":612,"kg":57520},"2024-10-26":{"runs":35,"drops":441,"kg":40312},"2024-10-28":{"runs":44,"drops":504,"kg":54053},"2024-10-29":{"runs":43,"drops":474,"kg":44254},"2024-10-30":{"runs":45,"drops":555,"kg":48965},"2024-10-31":{"runs":43,"drops":498,"kg":45938},"2024-11-01":{"runs":44,"drops":586,"kg":52708},"2024-11-02":{"runs":36,"drops":459,"kg":42424},"2024-11-04":{"runs":49,"drops":550,"kg":69067},"2024-11-05":{"runs":50,"drops":525,"kg":53882},"2024-11-06":{"runs":49,"drops":553,"kg":58272},"2024-11-07":{"runs":49,"drops":542,"kg":58098},"2024-11-08":{"runs":47,"drops":576,"kg":53195},"2024-11-09":{"runs":35,"drops":411,"kg":34822},"2024-11-11":{"runs":47,"drops":528,"kg":64948},"2024-11-12":{"runs":49,"drops":511,"kg":59015},"2024-11-13":{"runs":47,"drops":538,"kg":52510},"2024-11-14":{"runs":48,"drops":530,"kg":60420},"2024-11-15":{"runs":49,"drops":566,"kg":57980},"2024-11-16":{"runs":36,"drops":370,"kg":30517},"2024-11-18":{"runs":46,"drops":526,"kg":72867},"2024-11-19":{"runs":50,"drops":530,"kg":62498},"2024-11-20":{"runs":49,"drops":508,"kg":54696},"2024-11-21":{"runs":49,"drops":523,"kg":54036},"2024-11-22":{"runs":47,"drops":553,"kg":56485},"2024-11-23":{"runs":36,"drops":383,"kg":33454},"2024-11-25":{"runs":47,"drops":502,"kg":59579},"2024-11-26":{"runs":48,"drops":495,"kg":54237},"2024-11-27":{"runs":47,"drops":532,"kg":53654},"2024-11-28":{"runs":47,"drops":551,"kg":54660},"2024-11-29":{"runs":47,"drops":566,"kg":52332},"2024-11-30":{"runs":34,"drops":376,"kg":34171},"2024-12-02":{"runs":46,"drops":545,"kg":70744},"2024-12-03":{"runs":47,"drops":510,"kg":55305},"2024-12-04":{"runs":47,"drops":560,"kg":60776},"2024-12-05":{"runs":47,"drops":553,"kg":59588},"2024-12-06":{"runs":48,"drops":553,"kg":59960},"2024-12-07":{"runs":28,"drops":268,"kg":24189},"2024-12-09":{"runs":45,"drops":517,"kg":57431},"2024-12-10":{"runs":46,"drops":499,"kg":60859},"2024-12-11":{"runs":47,"drops":545,"kg":54964},"2024-12-12":{"runs":46,"drops":553,"kg":62915},"2024-12-13":{"runs":47,"drops":566,"kg":58991},"2024-12-14":{"runs":36,"drops":389,"kg":34751},"2024-12-16":{"runs":47,"drops":536,"kg":62053},"2024-12-17":{"runs":48,"drops":534,"kg":55803},"2024-12-18":{"runs":48,"drops":520,"kg":47359},"2024-12-19":{"runs":49,"drops":533,"kg":54251},"2024-12-20":{"runs":47,"drops":537,"kg":60514},"2024-12-21":{"runs":35,"drops":374,"kg":39491},"2024-12-23":{"runs":44,"drops":430,"kg":63647},"2024-12-24":{"runs":42,"drops":323,"kg":42067},"2024-12-27":{"runs":16,"drops":31,"kg":9564},"2024-12-28":{"runs":36,"drops":473,"kg":52193},"2024-12-30":{"runs":42,"drops":473,"kg":59115},"2024-12-31":{"runs":44,"drops":403,"kg":52052},"2025-01-02":{"runs":16,"drops":31,"kg":10170},"2025-01-03":{"runs":45,"drops":558,"kg":63800},"2025-01-04":{"runs":34,"drops":347,"kg":32984},"2025-01-06":{"runs":47,"drops":367,"kg":48973},"2025-01-07":{"runs":50,"drops":434,"kg":52263},"2025-01-08":{"runs":48,"drops":451,"kg":51924},"2025-01-09":{"runs":47,"drops":399,"kg":45287},"2025-01-10":{"runs":46,"drops":415,"kg":39583},"2025-01-11":{"runs":33,"drops":269,"kg":21993},"2025-01-13":{"runs":46,"drops":447,"kg":47321},"2025-01-14":{"runs":46,"drops":442,"kg":52033},"2025-01-15":{"runs":47,"drops":438,"kg":47574},"2025-01-16":{"runs":48,"drops":452,"kg":45839},"2025-01-17":{"runs":47,"drops":451,"kg":51513},"2025-01-18":{"runs":33,"drops":292,"kg":25270},"2025-01-20":{"runs":45,"drops":461,"kg":59068},"2025-01-21":{"runs":48,"drops":461,"kg":51235},"2025-01-22":{"runs":49,"drops":499,"kg":52737},"2025-01-23":{"runs":45,"drops":480,"kg":49263},"2025-01-24":{"runs":44,"drops":482,"kg":46958},"2025-01-25":{"runs":33,"drops":306,"kg":25647},"2025-01-27":{"runs":46,"drops":474,"kg":59231},"2025-01-28":{"runs":45,"drops":468,"kg":53476},"2025-01-29":{"runs":45,"drops":496,"kg":53030},"2025-01-30":{"runs":47,"drops":516,"kg":57786},"2025-01-31":{"runs":44,"drops":502,"kg":52828},"2025-02-01":{"runs":32,"drops":350,"kg":33511},"2025-02-03":{"runs":47,"drops":499,"kg":61526},"2025-02-04":{"runs":46,"drops":482,"kg":52936},"2025-02-05":{"runs":44,"drops":491,"kg":53193},"2025-02-06":{"runs":46,"drops":493,"kg":53595},"2025-02-07":{"runs":44,"drops":515,"kg":49977},"2025-02-08":{"runs":33,"drops":348,"kg":32805},"2025-02-10":{"runs":43,"drops":511,"kg":66413},"2025-02-11":{"runs":47,"drops":465,"kg":51316},"2025-02-12":{"runs":47,"drops":575,"kg":57511},"2025-02-13":{"runs":47,"drops":556,"kg":59758},"2025-02-14":{"runs":48,"drops":573,"kg":56277},"2025-02-15":{"runs":33,"drops":343,"kg":32279},"2025-02-17":{"runs":43,"drops":518,"kg":68121},"2025-02-18":{"runs":47,"drops":517,"kg":56537},"2025-02-19":{"runs":46,"drops":536,"kg":58012},"2025-02-20":{"runs":45,"drops":531,"kg":56467},"2025-02-21":{"runs":44,"drops":554,"kg":55725},"2025-02-22":{"runs":34,"drops":377,"kg":38989},"2025-02-24":{"runs":42,"drops":426,"kg":47046},"2025-02-25":{"runs":40,"drops":393,"kg":35986},"2025-02-26":{"runs":40,"drops":433,"kg":36750},"2025-02-27":{"runs":42,"drops":405,"kg":44106},"2025-02-28":{"runs":43,"drops":538,"kg":56705},"2025-03-01":{"runs":34,"drops":385,"kg":40159},"2025-03-03":{"runs":48,"drops":566,"kg":73142},"2025-03-04":{"runs":45,"drops":507,"kg":61575},"2025-03-05":{"runs":46,"drops":569,"kg":66387},"2025-03-06":{"runs":46,"drops":557,"kg":60726},"2025-03-07":{"runs":47,"drops":612,"kg":65363},"2025-03-08":{"runs":35,"drops":390,"kg":34395},"2025-03-09":{"runs":1,"drops":1,"kg":14},"2025-03-10":{"runs":47,"drops":604,"kg":78443},"2025-03-11":{"runs":49,"drops":560,"kg":64390},"2025-03-12":{"runs":46,"drops":565,"kg":61540},"2025-03-13":{"runs":48,"drops":517,"kg":59494},"2025-03-14":{"runs":46,"drops":627,"kg":67170},"2025-03-15":{"runs":32,"drops":397,"kg":36844},"2025-03-17":{"runs":47,"drops":559,"kg":71290},"2025-03-18":{"runs":48,"drops":546,"kg":63153},"2025-03-19":{"runs":47,"drops":624,"kg":69700},"2025-03-20":{"runs":46,"drops":589,"kg":63734},"2025-03-21":{"runs":46,"drops":650,"kg":69167},"2025-03-22":{"runs":33,"drops":405,"kg":34186},"2025-03-24":{"runs":47,"drops":582,"kg":77077},"2025-03-25":{"runs":46,"drops":571,"kg":62154},"2025-03-26":{"runs":49,"drops":595,"kg":69331},"2025-03-27":{"runs":47,"drops":598,"kg":66800},"2025-03-28":{"runs":48,"drops":690,"kg":79263},"2025-03-29":{"runs":34,"drops":451,"kg":45744},"2025-03-31":{"runs":49,"drops":558,"kg":75455},"2025-04-01":{"runs":50,"drops":577,"kg":65510},"2025-04-02":{"runs":48,"drops":646,"kg":70306},"2025-04-03":{"runs":48,"drops":620,"kg":69293},"2025-04-04":{"runs":50,"drops":712,"kg":76486},"2025-04-05":{"runs":38,"drops":464,"kg":43084},"2025-04-07":{"runs":49,"drops":637,"kg":91996},"2025-04-08":{"runs":51,"drops":603,"kg":68502},"2025-04-09":{"runs":48,"drops":641,"kg":73753},"2025-04-10":{"runs":45,"drops":640,"kg":68802},"2025-04-11":{"runs":51,"drops":746,"kg":80631},"2025-04-12":{"runs":38,"drops":507,"kg":53830},"2025-04-14":{"runs":48,"drops":529,"kg":62607},"2025-04-15":{"runs":46,"drops":457,"kg":44707},"2025-04-16":{"runs":45,"drops":516,"kg":53163},"2025-04-17":{"runs":46,"drops":546,"kg":58146},"2025-04-18":{"runs":50,"drops":675,"kg":72716},"2025-04-19":{"runs":39,"drops":508,"kg":59797},"2025-04-21":{"runs":46,"drops":446,"kg":56576},"2025-04-22":{"runs":43,"drops":457,"kg":45111},"2025-04-23":{"runs":48,"drops":526,"kg":51267},"2025-04-24":{"runs":46,"drops":503,"kg":46641},"2025-04-25":{"runs":48,"drops":631,"kg":61572},"2025-04-26":{"runs":39,"drops":472,"kg":45942},"2025-04-28":{"runs":50,"drops":595,"kg":76659},"2025-04-29":{"runs":49,"drops":562,"kg":66456},"2025-04-30":{"runs":49,"drops":674,"kg":80425},"2025-05-01":{"runs":51,"drops":663,"kg":79469},"2025-05-02":{"runs":50,"drops":749,"kg":83865},"2025-05-03":{"runs":40,"drops":516,"kg":55333},"2025-05-05":{"runs":45,"drops":454,"kg":51436},"2025-05-06":{"runs":52,"drops":631,"kg":80895},"2025-05-07":{"runs":50,"drops":674,"kg":80621},"2025-05-08":{"runs":49,"drops":619,"kg":66745},"2025-05-09":{"runs":50,"drops":713,"kg":75749},"2025-05-10":{"runs":36,"drops":462,"kg":45867},"2025-05-12":{"runs":49,"drops":659,"kg":80824},"2025-05-13":{"runs":53,"drops":566,"kg":62288},"2025-05-14":{"runs":52,"drops":675,"kg":74932},"2025-05-15":{"runs":50,"drops":630,"kg":76256},"2025-05-16":{"runs":50,"drops":743,"kg":78921},"2025-05-17":{"runs":38,"drops":504,"kg":49762},"2025-05-19":{"runs":50,"drops":665,"kg":86188},"2025-05-20":{"runs":50,"drops":592,"kg":64406},"2025-05-21":{"runs":51,"drops":687,"kg":71558},"2025-05-22":{"runs":52,"drops":668,"kg":72557},"2025-05-23":{"runs":53,"drops":730,"kg":83262},"2025-05-24":{"runs":44,"drops":536,"kg":58690},"2025-05-26":{"runs":46,"drops":457,"kg":52653},"2025-05-27":{"runs":42,"drops":447,"kg":45297},"2025-05-28":{"runs":47,"drops":561,"kg":55865},"2025-05-29":{"runs":47,"drops":506,"kg":57508},"2025-05-30":{"runs":50,"drops":670,"kg":68536},"2025-05-31":{"runs":42,"drops":532,"kg":56243},"2025-06-02":{"runs":54,"drops":640,"kg":85610},"2025-06-03":{"runs":56,"drops":566,"kg":71899},"2025-06-04":{"runs":52,"drops":667,"kg":69407},"2025-06-05":{"runs":52,"drops":624,"kg":71909},"2025-06-06":{"runs":50,"drops":707,"kg":68984},"2025-06-07":{"runs":38,"drops":473,"kg":46616},"2025-06-09":{"runs":51,"drops":617,"kg":78723},"2025-06-10":{"runs":53,"drops":581,"kg":67712},"2025-06-11":{"runs":52,"drops":676,"kg":70682},"2025-06-12":{"runs":51,"drops":641,"kg":73937},"2025-06-13":{"runs":52,"drops":721,"kg":76380},"2025-06-14":{"runs":41,"drops":477,"kg":52197},"2025-06-16":{"runs":51,"drops":645,"kg":81963},"2025-06-17":{"runs":54,"drops":620,"kg":69319},"2025-06-18":{"runs":54,"drops":709,"kg":74832},"2025-06-19":{"runs":53,"drops":675,"kg":78557},"2025-06-20":{"runs":52,"drops":768,"kg":87573},"2025-06-21":{"runs":41,"drops":507,"kg":52145},"2025-06-23":{"runs":51,"drops":652,"kg":77356},"2025-06-24":{"runs":51,"drops":626,"kg":69329},"2025-06-25":{"runs":50,"drops":697,"kg":72905},"2025-06-26":{"runs":52,"drops":676,"kg":73242},"2025-06-27":{"runs":52,"drops":739,"kg":78390},"2025-06-28":{"runs":39,"drops":471,"kg":46200},"2025-06-30":{"runs":53,"drops":666,"kg":80824},"2025-07-01":{"runs":56,"drops":640,"kg":80997},"2025-07-02":{"runs":53,"drops":717,"kg":75696},"2025-07-03":{"runs":53,"drops":683,"kg":73918},"2025-07-04":{"runs":54,"drops":756,"kg":76356},"2025-07-05":{"runs":40,"drops":497,"kg":47294},"2025-07-07":{"runs":49,"drops":688,"kg":80547},"2025-07-08":{"runs":52,"drops":652,"kg":69647},"2025-07-09":{"runs":55,"drops":700,"kg":68942},"2025-07-10":{"runs":51,"drops":717,"kg":73499},"2025-07-11":{"runs":55,"drops":789,"kg":86481},"2025-07-12":{"runs":40,"drops":555,"kg":61370},"2025-07-14":{"runs":55,"drops":708,"kg":91685},"2025-07-15":{"runs":53,"drops":669,"kg":66080},"2025-07-16":{"runs":51,"drops":676,"kg":66300},"2025-07-17":{"runs":53,"drops":603,"kg":62492},"2025-07-18":{"runs":54,"drops":753,"kg":74364},"2025-07-19":{"runs":40,"drops":557,"kg":55657},"2025-07-21":{"runs":51,"drops":578,"kg":63954},"2025-07-22":{"runs":49,"drops":492,"kg":47153},"2025-07-23":{"runs":46,"drops":605,"kg":56158},"2025-07-24":{"runs":49,"drops":564,"kg":57118},"2025-07-25":{"runs":53,"drops":726,"kg":73445},"2025-07-26":{"runs":42,"drops":588,"kg":63099},"2025-07-28":{"runs":48,"drops":590,"kg":70177},"2025-07-29":{"runs":50,"drops":527,"kg":52904},"2025-07-30":{"runs":48,"drops":642,"kg":61117},"2025-07-31":{"runs":52,"drops":574,"kg":63283},"2025-08-01":{"runs":49,"drops":704,"kg":72996},"2025-08-02":{"runs":43,"drops":582,"kg":60739},"2025-08-04":{"runs":50,"drops":608,"kg":71537},"2025-08-05":{"runs":48,"drops":517,"kg":50316},"2025-08-06":{"runs":50,"drops":627,"kg":57886},"2025-08-07":{"runs":51,"drops":576,"kg":64778},"2025-08-08":{"runs":53,"drops":734,"kg":78991},"2025-08-09":{"runs":44,"drops":580,"kg":64870},"2025-08-11":{"runs":48,"drops":640,"kg":73933},"2025-08-12":{"runs":49,"drops":560,"kg":58011},"2025-08-13":{"runs":49,"drops":664,"kg":67624},"2025-08-14":{"runs":51,"drops":651,"kg":67798},"2025-08-15":{"runs":50,"drops":768,"kg":81052},"2025-08-16":{"runs":42,"drops":601,"kg":69174},"2025-08-18":{"runs":51,"drops":663,"kg":87419},"2025-08-19":{"runs":50,"drops":526,"kg":61573},"2025-08-20":{"runs":49,"drops":660,"kg":60713},"2025-08-21":{"runs":51,"drops":601,"kg":65617},"2025-08-22":{"runs":56,"drops":787,"kg":89514},"2025-08-23":{"runs":50,"drops":622,"kg":76414},"2025-08-25":{"runs":49,"drops":539,"kg":68110},"2025-08-26":{"runs":53,"drops":579,"kg":65204},"2025-08-27":{"runs":51,"drops":640,"kg":63356},"2025-08-28":{"runs":54,"drops":613,"kg":63856},"2025-08-29":{"runs":55,"drops":758,"kg":74800},"2025-08-30":{"runs":43,"drops":528,"kg":60315},"2025-09-01":{"runs":58,"drops":710,"kg":102853},"2025-09-02":{"runs":59,"drops":644,"kg":92546},"2025-09-03":{"runs":52,"drops":680,"kg":73455},"2025-09-04":{"runs":55,"drops":639,"kg":74634},"2025-09-05":{"runs":55,"drops":776,"kg":85036},"2025-09-06":{"runs":41,"drops":491,"kg":44445},"2025-09-08":{"runs":53,"drops":695,"kg":88914},"2025-09-09":{"runs":55,"drops":683,"kg":77265},"2025-09-10":{"runs":57,"drops":745,"kg":77964},"2025-09-11":{"runs":57,"drops":697,"kg":77801},"2025-09-12":{"runs":55,"drops":777,"kg":79202},"2025-09-13":{"runs":43,"drops":465,"kg":41908},"2025-09-15":{"runs":54,"drops":676,"kg":83959},"2025-09-16":{"runs":54,"drops":683,"kg":81730},"2025-09-17":{"runs":51,"drops":735,"kg":76000},"2025-09-18":{"runs":53,"drops":679,"kg":77830},"2025-09-19":{"runs":50,"drops":727,"kg":75016},"2025-09-20":{"runs":37,"drops":463,"kg":43929},"2025-09-22":{"runs":53,"drops":716,"kg":91202},"2025-09-23":{"runs":54,"drops":661,"kg":85494},"2025-09-24":{"runs":53,"drops":743,"kg":72413},"2025-09-25":{"runs":54,"drops":704,"kg":78993},"2025-09-26":{"runs":52,"drops":739,"kg":72228},"2025-09-27":{"runs":41,"drops":494,"kg":44152},"2025-09-29":{"runs":55,"drops":760,"kg":97545},"2025-09-30":{"runs":58,"drops":723,"kg":96087},"2025-10-01":{"runs":56,"drops":776,"kg":92920},"2025-10-02":{"runs":55,"drops":700,"kg":79940},"2025-10-03":{"runs":54,"drops":791,"kg":75944},"2025-10-04":{"runs":39,"drops":414,"kg":37458},"2025-10-06":{"runs":56,"drops":756,"kg":91589},"2025-10-07":{"runs":57,"drops":694,"kg":84799},"2025-10-08":{"runs":57,"drops":730,"kg":81863},"2025-10-09":{"runs":53,"drops":669,"kg":72292},"2025-10-10":{"runs":54,"drops":775,"kg":79241},"2025-10-11":{"runs":39,"drops":467,"kg":42591},"2025-10-13":{"runs":55,"drops":716,"kg":94458},"2025-10-14":{"runs":57,"drops":706,"kg":87316},"2025-10-15":{"runs":55,"drops":766,"kg":85649},"2025-10-16":{"runs":56,"drops":670,"kg":76252},"2025-10-17":{"runs":56,"drops":769,"kg":80431},"2025-10-18":{"runs":40,"drops":483,"kg":44770},"2025-10-20":{"runs":54,"drops":730,"kg":94537},"2025-10-21":{"runs":56,"drops":690,"kg":83378},"2025-10-22":{"runs":56,"drops":730,"kg":76528},"2025-10-23":{"runs":53,"drops":657,"kg":72810},"2025-10-24":{"runs":53,"drops":749,"kg":69776},"2025-10-25":{"runs":40,"drops":491,"kg":46563},"2025-10-27":{"runs":45,"drops":523,"kg":63931},"2025-10-28":{"runs":45,"drops":518,"kg":50637},"2025-10-29":{"runs":48,"drops":610,"kg":62803},"2025-10-30":{"runs":47,"drops":544,"kg":54997},"2025-10-31":{"runs":47,"drops":678,"kg":66008},"2025-11-01":{"runs":40,"drops":449,"kg":46537},"2025-11-03":{"runs":53,"drops":691,"kg":99268},"2025-11-04":{"runs":61,"drops":731,"kg":89369},"2025-11-05":{"runs":58,"drops":768,"kg":85549},"2025-11-06":{"runs":53,"drops":663,"kg":80248},"2025-11-07":{"runs":55,"drops":733,"kg":75066},"2025-11-08":{"runs":41,"drops":443,"kg":43868},"2025-11-10":{"runs":55,"drops":710,"kg":100384},"2025-11-11":{"runs":54,"drops":687,"kg":79747},"2025-11-12":{"runs":53,"drops":728,"kg":77550},"2025-11-13":{"runs":52,"drops":639,"kg":75251},"2025-11-14":{"runs":52,"drops":751,"kg":78319},"2025-11-15":{"runs":38,"drops":410,"kg":35997},"2025-11-17":{"runs":57,"drops":739,"kg":97263},"2025-11-18":{"runs":58,"drops":721,"kg":81963},"2025-11-19":{"runs":56,"drops":692,"kg":76588},"2025-11-20":{"runs":55,"drops":671,"kg":75511},"2025-11-21":{"runs":55,"drops":749,"kg":74484},"2025-11-22":{"runs":40,"drops":439,"kg":40803},"2025-11-24":{"runs":56,"drops":712,"kg":98398},"2025-11-25":{"runs":57,"drops":704,"kg":78113},"2025-11-26":{"runs":55,"drops":731,"kg":81497},"2025-11-27":{"runs":56,"drops":675,"kg":74038},"2025-11-28":{"runs":56,"drops":739,"kg":72779},"2025-11-29":{"runs":38,"drops":437,"kg":41638},"2025-12-01":{"runs":56,"drops":739,"kg":100233},"2025-12-02":{"runs":57,"drops":677,"kg":81360},"2025-12-03":{"runs":58,"drops":726,"kg":82344},"2025-12-04":{"runs":56,"drops":659,"kg":77806},"2025-12-05":{"runs":54,"drops":777,"kg":78802},"2025-12-06":{"runs":38,"drops":442,"kg":42919},"2025-12-08":{"runs":54,"drops":725,"kg":101352},"2025-12-09":{"runs":58,"drops":710,"kg":83616},"2025-12-10":{"runs":58,"drops":714,"kg":80241},"2025-12-11":{"runs":55,"drops":719,"kg":76464},"2025-12-12":{"runs":57,"drops":754,"kg":77113},"2025-12-13":{"runs":40,"drops":446,"kg":44709},"2025-12-15":{"runs":57,"drops":768,"kg":98640},"2025-12-16":{"runs":58,"drops":669,"kg":73134},"2025-12-17":{"runs":56,"drops":702,"kg":74715},"2025-12-18":{"runs":56,"drops":639,"kg":69554},"2025-12-19":{"runs":59,"drops":691,"kg":72298},"2025-12-20":{"runs":43,"drops":463,"kg":49926},"2025-12-22":{"runs":50,"drops":540,"kg":75556},"2025-12-23":{"runs":48,"drops":464,"kg":54502},"2025-12-24":{"runs":51,"drops":461,"kg":58580},"2025-12-27":{"runs":39,"drops":361,"kg":41094},"2025-12-29":{"runs":47,"drops":506,"kg":58342},"2025-12-30":{"runs":47,"drops":462,"kg":50298},"2025-12-31":{"runs":48,"drops":534,"kg":69466},"2026-01-02":{"runs":48,"drops":519,"kg":59262},"2026-01-03":{"runs":39,"drops":415,"kg":44398},"2026-01-05":{"runs":58,"drops":508,"kg":71313},"2026-01-06":{"runs":54,"drops":554,"kg":62931},"2026-01-07":{"runs":59,"drops":707,"kg":86476},"2026-01-08":{"runs":59,"drops":618,"kg":83200},"2026-01-09":{"runs":54,"drops":539,"kg":49342},"2026-01-10":{"runs":41,"drops":354,"kg":29797},"2026-01-12":{"runs":57,"drops":658,"kg":89699},"2026-01-13":{"runs":58,"drops":644,"kg":74963},"2026-01-14":{"runs":57,"drops":656,"kg":78253},"2026-01-15":{"runs":55,"drops":624,"kg":67471},"2026-01-16":{"runs":56,"drops":640,"kg":69190},"2026-01-17":{"runs":40,"drops":376,"kg":33675},"2026-01-19":{"runs":56,"drops":685,"kg":90475},"2026-01-20":{"runs":57,"drops":656,"kg":74760},"2026-01-21":{"runs":57,"drops":677,"kg":74385},"2026-01-22":{"runs":57,"drops":634,"kg":75124},"2026-01-23":{"runs":57,"drops":677,"kg":69425},"2026-01-24":{"runs":40,"drops":386,"kg":37090},"2026-01-26":{"runs":56,"drops":717,"kg":97250},"2026-01-27":{"runs":57,"drops":676,"kg":74327},"2026-01-28":{"runs":57,"drops":677,"kg":77112},"2026-01-29":{"runs":56,"drops":627,"kg":71878},"2026-01-30":{"runs":56,"drops":707,"kg":71583},"2026-01-31":{"runs":40,"drops":391,"kg":39101},"2026-02-02":{"runs":57,"drops":717,"kg":98405},"2026-02-03":{"runs":58,"drops":656,"kg":81958},"2026-02-04":{"runs":57,"drops":697,"kg":78982},"2026-02-05":{"runs":54,"drops":651,"kg":72418},"2026-02-06":{"runs":56,"drops":726,"kg":73579},"2026-02-07":{"runs":39,"drops":406,"kg":40627},"2026-02-09":{"runs":58,"drops":737,"kg":93447},"2026-02-10":{"runs":57,"drops":700,"kg":74216},"2026-02-11":{"runs":56,"drops":702,"kg":70618},"2026-02-12":{"runs":57,"drops":648,"kg":72276},"2026-02-13":{"runs":55,"drops":782,"kg":74875},"2026-02-14":{"runs":40,"drops":481,"kg":46464},"2026-02-16":{"runs":50,"drops":591,"kg":69245},"2026-02-17":{"runs":48,"drops":486,"kg":43986},"2026-02-18":{"runs":50,"drops":592,"kg":52894},"2026-02-19":{"runs":48,"drops":493,"kg":46985},"2026-02-20":{"runs":50,"drops":686,"kg":66700},"2026-02-21":{"runs":42,"drops":485,"kg":49380},"2026-02-23":{"runs":59,"drops":753,"kg":102735},"2026-02-24":{"runs":57,"drops":704,"kg":80258},"2026-02-25":{"runs":57,"drops":777,"kg":78686},"2026-02-26":{"runs":55,"drops":680,"kg":80733},"2026-02-27":{"runs":56,"drops":796,"kg":79017},"2026-02-28":{"runs":38,"drops":481,"kg":42414},"2026-03-02":{"runs":58,"drops":773,"kg":105195},"2026-03-03":{"runs":57,"drops":748,"kg":80366},"2026-03-04":{"runs":55,"drops":755,"kg":80304},"2026-03-05":{"runs":56,"drops":712,"kg":78927},"2026-03-06":{"runs":59,"drops":822,"kg":84530},"2026-03-07":{"runs":38,"drops":476,"kg":44083},"2026-03-09":{"runs":59,"drops":797,"kg":101560},"2026-03-10":{"runs":58,"drops":767,"kg":82788},"2026-03-11":{"runs":58,"drops":805,"kg":85269},"2026-03-12":{"runs":58,"drops":742,"kg":81571},"2026-03-13":{"runs":59,"drops":837,"kg":92471},"2026-03-14":{"runs":39,"drops":517,"kg":52862},"2026-03-16":{"runs":57,"drops":772,"kg":98683},"2026-03-17":{"runs":57,"drops":768,"kg":81803},"2026-03-18":{"runs":57,"drops":777,"kg":76908},"2026-03-19":{"runs":56,"drops":760,"kg":79669},"2026-03-20":{"runs":59,"drops":880,"kg":89125},"2026-03-21":{"runs":40,"drops":528,"kg":49840},"2026-03-22":{"runs":1,"drops":1,"kg":39},"2026-03-23":{"runs":57,"drops":817,"kg":100351},"2026-03-24":{"runs":58,"drops":798,"kg":83064},"2026-03-25":{"runs":57,"drops":820,"kg":78919},"2026-03-26":{"runs":55,"drops":760,"kg":85593},"2026-03-27":{"runs":56,"drops":822,"kg":86559},"2026-03-28":{"runs":41,"drops":589,"kg":55932},"2026-03-30":{"runs":52,"drops":595,"kg":75411},"2026-03-31":{"runs":50,"drops":579,"kg":51041},"2026-04-01":{"runs":55,"drops":777,"kg":79365},"2026-04-02":{"runs":55,"drops":660,"kg":67376},"2026-04-03":{"runs":58,"drops":813,"kg":83372},"2026-04-04":{"runs":43,"drops":621,"kg":73243},"2026-04-05":{"runs":1,"drops":1,"kg":5},"2026-04-06":{"runs":52,"drops":569,"kg":67967},"2026-04-07":{"runs":52,"drops":615,"kg":63111},"2026-04-08":{"runs":55,"drops":737,"kg":72467},"2026-04-09":{"runs":56,"drops":666,"kg":65458},"2026-04-10":{"runs":54,"drops":833,"kg":85732},"2026-04-11":{"runs":46,"drops":606,"kg":57349},"2026-04-13":{"runs":62,"drops":771,"kg":99402},"2026-04-14":{"runs":60,"drops":736,"kg":84341},"2026-04-15":{"runs":59,"drops":798,"kg":95100},"2026-04-16":{"runs":55,"drops":723,"kg":77035},"2026-04-17":{"runs":59,"drops":855,"kg":85399},"2026-04-18":{"runs":42,"drops":524,"kg":47693},"2026-04-20":{"runs":63,"drops":846,"kg":106614},"2026-04-21":{"runs":61,"drops":814,"kg":89762},"2026-04-22":{"runs":59,"drops":822,"kg":89742},"2026-04-23":{"runs":60,"drops":766,"kg":84064},"2026-04-24":{"runs":61,"drops":920,"kg":92717},"2026-04-25":{"runs":43,"drops":597,"kg":60347},"2026-04-27":{"runs":67,"drops":895,"kg":118198},"2026-04-28":{"runs":60,"drops":826,"kg":88147},"2026-04-29":{"runs":63,"drops":851,"kg":92484},"2026-04-30":{"runs":64,"drops":859,"kg":103712},"2026-05-01":{"runs":64,"drops":978,"kg":114771},"2026-05-02":{"runs":46,"drops":606,"kg":66775},"2026-05-04":{"runs":54,"drops":581,"kg":65654}};
+  const ROUTES = {"2024-09-30":{"runs":46,"drops":590,"kg":70450},"2024-10-01":{"runs":48,"drops":531,"kg":62231},"2024-10-02":{"runs":49,"drops":576,"kg":60294},"2024-10-03":{"runs":48,"drops":579,"kg":55231},"2024-10-04":{"runs":48,"drops":613,"kg":61515},"2024-10-05":{"runs":35,"drops":438,"kg":34868},"2024-10-07":{"runs":48,"drops":588,"kg":68092},"2024-10-08":{"runs":48,"drops":546,"kg":57822},"2024-10-09":{"runs":49,"drops":554,"kg":56544},"2024-10-10":{"runs":49,"drops":576,"kg":57401},"2024-10-11":{"runs":47,"drops":618,"kg":55242},"2024-10-12":{"runs":36,"drops":431,"kg":35343},"2024-10-14":{"runs":47,"drops":592,"kg":67615},"2024-10-15":{"runs":49,"drops":542,"kg":58961},"2024-10-16":{"runs":46,"drops":563,"kg":57106},"2024-10-17":{"runs":47,"drops":536,"kg":57384},"2024-10-18":{"runs":47,"drops":610,"kg":55179},"2024-10-19":{"runs":37,"drops":419,"kg":34574},"2024-10-21":{"runs":47,"drops":555,"kg":64310},"2024-10-22":{"runs":47,"drops":556,"kg":61876},"2024-10-23":{"runs":47,"drops":608,"kg":54960},"2024-10-24":{"runs":50,"drops":568,"kg":57503},"2024-10-25":{"runs":47,"drops":612,"kg":57520},"2024-10-26":{"runs":35,"drops":441,"kg":40312},"2024-10-28":{"runs":44,"drops":504,"kg":54053},"2024-10-29":{"runs":43,"drops":474,"kg":44254},"2024-10-30":{"runs":45,"drops":555,"kg":48965},"2024-10-31":{"runs":43,"drops":498,"kg":45938},"2024-11-01":{"runs":44,"drops":586,"kg":52708},"2024-11-02":{"runs":36,"drops":459,"kg":42424},"2024-11-04":{"runs":49,"drops":550,"kg":69067},"2024-11-05":{"runs":50,"drops":525,"kg":53882},"2024-11-06":{"runs":49,"drops":553,"kg":58272},"2024-11-07":{"runs":49,"drops":542,"kg":58098},"2024-11-08":{"runs":47,"drops":576,"kg":53195},"2024-11-09":{"runs":35,"drops":411,"kg":34822},"2024-11-11":{"runs":47,"drops":528,"kg":64948},"2024-11-12":{"runs":49,"drops":511,"kg":59015},"2024-11-13":{"runs":47,"drops":538,"kg":52510},"2024-11-14":{"runs":48,"drops":530,"kg":60420},"2024-11-15":{"runs":49,"drops":566,"kg":57980},"2024-11-16":{"runs":36,"drops":370,"kg":30517},"2024-11-18":{"runs":46,"drops":526,"kg":72867},"2024-11-19":{"runs":50,"drops":530,"kg":62498},"2024-11-20":{"runs":49,"drops":508,"kg":54696},"2024-11-21":{"runs":49,"drops":523,"kg":54036},"2024-11-22":{"runs":47,"drops":553,"kg":56485},"2024-11-23":{"runs":36,"drops":383,"kg":33454},"2024-11-25":{"runs":47,"drops":502,"kg":59579},"2024-11-26":{"runs":48,"drops":495,"kg":54237},"2024-11-27":{"runs":47,"drops":532,"kg":53654},"2024-11-28":{"runs":47,"drops":551,"kg":54660},"2024-11-29":{"runs":47,"drops":566,"kg":52332},"2024-11-30":{"runs":34,"drops":376,"kg":34171},"2024-12-02":{"runs":46,"drops":545,"kg":70744},"2024-12-03":{"runs":47,"drops":510,"kg":55305},"2024-12-04":{"runs":47,"drops":560,"kg":60776},"2024-12-05":{"runs":47,"drops":553,"kg":59588},"2024-12-06":{"runs":48,"drops":553,"kg":59960},"2024-12-07":{"runs":28,"drops":268,"kg":24189},"2024-12-09":{"runs":45,"drops":517,"kg":57431},"2024-12-10":{"runs":46,"drops":499,"kg":60859},"2024-12-11":{"runs":47,"drops":545,"kg":54964},"2024-12-12":{"runs":46,"drops":553,"kg":62915},"2024-12-13":{"runs":47,"drops":566,"kg":58991},"2024-12-14":{"runs":36,"drops":389,"kg":34751},"2024-12-16":{"runs":47,"drops":536,"kg":62053},"2024-12-17":{"runs":48,"drops":534,"kg":55803},"2024-12-18":{"runs":48,"drops":520,"kg":47359},"2024-12-19":{"runs":49,"drops":533,"kg":54251},"2024-12-20":{"runs":47,"drops":537,"kg":60514},"2024-12-21":{"runs":35,"drops":374,"kg":39491},"2024-12-23":{"runs":44,"drops":430,"kg":63647},"2024-12-24":{"runs":42,"drops":323,"kg":42067},"2024-12-27":{"runs":16,"drops":31,"kg":9564},"2024-12-28":{"runs":36,"drops":473,"kg":52193},"2024-12-30":{"runs":42,"drops":473,"kg":59115},"2024-12-31":{"runs":44,"drops":403,"kg":52052},"2025-01-02":{"runs":16,"drops":31,"kg":10170},"2025-01-03":{"runs":45,"drops":558,"kg":63800},"2025-01-04":{"runs":34,"drops":347,"kg":32984},"2025-01-06":{"runs":47,"drops":367,"kg":48973},"2025-01-07":{"runs":50,"drops":434,"kg":52263},"2025-01-08":{"runs":48,"drops":451,"kg":51924},"2025-01-09":{"runs":47,"drops":399,"kg":45287},"2025-01-10":{"runs":46,"drops":415,"kg":39583},"2025-01-11":{"runs":33,"drops":269,"kg":21993},"2025-01-13":{"runs":46,"drops":447,"kg":47321},"2025-01-14":{"runs":46,"drops":442,"kg":52033},"2025-01-15":{"runs":47,"drops":438,"kg":47574},"2025-01-16":{"runs":48,"drops":452,"kg":45839},"2025-01-17":{"runs":47,"drops":451,"kg":51513},"2025-01-18":{"runs":33,"drops":292,"kg":25270},"2025-01-20":{"runs":45,"drops":461,"kg":59068},"2025-01-21":{"runs":48,"drops":461,"kg":51235},"2025-01-22":{"runs":49,"drops":499,"kg":52737},"2025-01-23":{"runs":45,"drops":480,"kg":49263},"2025-01-24":{"runs":44,"drops":482,"kg":46958},"2025-01-25":{"runs":33,"drops":306,"kg":25647},"2025-01-27":{"runs":46,"drops":474,"kg":59231},"2025-01-28":{"runs":45,"drops":468,"kg":53476},"2025-01-29":{"runs":45,"drops":496,"kg":53030},"2025-01-30":{"runs":47,"drops":516,"kg":57786},"2025-01-31":{"runs":44,"drops":502,"kg":52828},"2025-02-01":{"runs":32,"drops":350,"kg":33511},"2025-02-03":{"runs":47,"drops":499,"kg":61526},"2025-02-04":{"runs":46,"drops":482,"kg":52936},"2025-02-05":{"runs":44,"drops":491,"kg":53193},"2025-02-06":{"runs":46,"drops":493,"kg":53595},"2025-02-07":{"runs":44,"drops":515,"kg":49977},"2025-02-08":{"runs":33,"drops":348,"kg":32805},"2025-02-10":{"runs":43,"drops":511,"kg":66413},"2025-02-11":{"runs":47,"drops":465,"kg":51316},"2025-02-12":{"runs":47,"drops":575,"kg":57511},"2025-02-13":{"runs":47,"drops":556,"kg":59758},"2025-02-14":{"runs":48,"drops":573,"kg":56277},"2025-02-15":{"runs":33,"drops":343,"kg":32279},"2025-02-17":{"runs":43,"drops":518,"kg":68121},"2025-02-18":{"runs":47,"drops":517,"kg":56537},"2025-02-19":{"runs":46,"drops":536,"kg":58012},"2025-02-20":{"runs":45,"drops":531,"kg":56467},"2025-02-21":{"runs":44,"drops":554,"kg":55725},"2025-02-22":{"runs":34,"drops":377,"kg":38989},"2025-02-24":{"runs":42,"drops":426,"kg":47046},"2025-02-25":{"runs":40,"drops":393,"kg":35986},"2025-02-26":{"runs":40,"drops":433,"kg":36750},"2025-02-27":{"runs":42,"drops":405,"kg":44106},"2025-02-28":{"runs":43,"drops":538,"kg":56705},"2025-03-01":{"runs":34,"drops":385,"kg":40159},"2025-03-03":{"runs":48,"drops":566,"kg":73142},"2025-03-04":{"runs":45,"drops":507,"kg":61575},"2025-03-05":{"runs":46,"drops":569,"kg":66387},"2025-03-06":{"runs":46,"drops":557,"kg":60726},"2025-03-07":{"runs":47,"drops":612,"kg":65363},"2025-03-08":{"runs":35,"drops":390,"kg":34395},"2025-03-09":{"runs":1,"drops":1,"kg":14},"2025-03-10":{"runs":47,"drops":604,"kg":78443},"2025-03-11":{"runs":49,"drops":560,"kg":64390},"2025-03-12":{"runs":46,"drops":565,"kg":61540},"2025-03-13":{"runs":48,"drops":517,"kg":59494},"2025-03-14":{"runs":46,"drops":627,"kg":67170},"2025-03-15":{"runs":32,"drops":397,"kg":36844},"2025-03-17":{"runs":47,"drops":559,"kg":71290},"2025-03-18":{"runs":48,"drops":546,"kg":63153},"2025-03-19":{"runs":47,"drops":624,"kg":69700},"2025-03-20":{"runs":46,"drops":589,"kg":63734},"2025-03-21":{"runs":46,"drops":650,"kg":69167},"2025-03-22":{"runs":33,"drops":405,"kg":34186},"2025-03-24":{"runs":47,"drops":582,"kg":77077},"2025-03-25":{"runs":46,"drops":571,"kg":62154},"2025-03-26":{"runs":49,"drops":595,"kg":69331},"2025-03-27":{"runs":47,"drops":598,"kg":66800},"2025-03-28":{"runs":48,"drops":690,"kg":79263},"2025-03-29":{"runs":34,"drops":451,"kg":45744},"2025-03-31":{"runs":49,"drops":558,"kg":75455},"2025-04-01":{"runs":50,"drops":577,"kg":65510},"2025-04-02":{"runs":48,"drops":646,"kg":70306},"2025-04-03":{"runs":48,"drops":620,"kg":69293},"2025-04-04":{"runs":50,"drops":712,"kg":76486},"2025-04-05":{"runs":38,"drops":464,"kg":43084},"2025-04-07":{"runs":49,"drops":637,"kg":91996},"2025-04-08":{"runs":51,"drops":603,"kg":68502},"2025-04-09":{"runs":48,"drops":641,"kg":73753},"2025-04-10":{"runs":45,"drops":640,"kg":68802},"2025-04-11":{"runs":51,"drops":746,"kg":80631},"2025-04-12":{"runs":38,"drops":507,"kg":53830},"2025-04-14":{"runs":48,"drops":529,"kg":62607},"2025-04-15":{"runs":46,"drops":457,"kg":44707},"2025-04-16":{"runs":45,"drops":516,"kg":53163},"2025-04-17":{"runs":46,"drops":546,"kg":58146},"2025-04-18":{"runs":50,"drops":675,"kg":72716},"2025-04-19":{"runs":39,"drops":508,"kg":59797},"2025-04-21":{"runs":46,"drops":446,"kg":56576},"2025-04-22":{"runs":43,"drops":457,"kg":45111},"2025-04-23":{"runs":48,"drops":526,"kg":51267},"2025-04-24":{"runs":46,"drops":503,"kg":46641},"2025-04-25":{"runs":48,"drops":631,"kg":61572},"2025-04-26":{"runs":39,"drops":472,"kg":45942},"2025-04-28":{"runs":50,"drops":595,"kg":76659},"2025-04-29":{"runs":49,"drops":562,"kg":66456},"2025-04-30":{"runs":49,"drops":674,"kg":80425},"2025-05-01":{"runs":51,"drops":663,"kg":79469},"2025-05-02":{"runs":50,"drops":749,"kg":83865},"2025-05-03":{"runs":40,"drops":516,"kg":55333},"2025-05-05":{"runs":45,"drops":454,"kg":51436},"2025-05-06":{"runs":52,"drops":631,"kg":80895},"2025-05-07":{"runs":50,"drops":674,"kg":80621},"2025-05-08":{"runs":49,"drops":619,"kg":66745},"2025-05-09":{"runs":50,"drops":713,"kg":75749},"2025-05-10":{"runs":36,"drops":462,"kg":45867},"2025-05-12":{"runs":49,"drops":659,"kg":80824},"2025-05-13":{"runs":53,"drops":566,"kg":62288},"2025-05-14":{"runs":52,"drops":675,"kg":74932},"2025-05-15":{"runs":50,"drops":630,"kg":76256},"2025-05-16":{"runs":50,"drops":743,"kg":78921},"2025-05-17":{"runs":38,"drops":504,"kg":49762},"2025-05-19":{"runs":50,"drops":665,"kg":86188},"2025-05-20":{"runs":50,"drops":592,"kg":64406},"2025-05-21":{"runs":51,"drops":687,"kg":71558},"2025-05-22":{"runs":52,"drops":668,"kg":72557},"2025-05-23":{"runs":53,"drops":730,"kg":83262},"2025-05-24":{"runs":44,"drops":536,"kg":58690},"2025-05-26":{"runs":46,"drops":457,"kg":52653},"2025-05-27":{"runs":42,"drops":447,"kg":45297},"2025-05-28":{"runs":47,"drops":561,"kg":55865},"2025-05-29":{"runs":47,"drops":506,"kg":57508},"2025-05-30":{"runs":50,"drops":670,"kg":68536},"2025-05-31":{"runs":42,"drops":532,"kg":56243},"2025-06-02":{"runs":54,"drops":640,"kg":85610},"2025-06-03":{"runs":56,"drops":566,"kg":71899},"2025-06-04":{"runs":52,"drops":667,"kg":69407},"2025-06-05":{"runs":52,"drops":624,"kg":71909},"2025-06-06":{"runs":50,"drops":707,"kg":68984},"2025-06-07":{"runs":38,"drops":473,"kg":46616},"2025-06-09":{"runs":51,"drops":617,"kg":78723},"2025-06-10":{"runs":53,"drops":581,"kg":67712},"2025-06-11":{"runs":52,"drops":676,"kg":70682},"2025-06-12":{"runs":51,"drops":641,"kg":73937},"2025-06-13":{"runs":52,"drops":721,"kg":76380},"2025-06-14":{"runs":41,"drops":477,"kg":52197},"2025-06-16":{"runs":51,"drops":645,"kg":81963},"2025-06-17":{"runs":54,"drops":620,"kg":69319},"2025-06-18":{"runs":54,"drops":709,"kg":74832},"2025-06-19":{"runs":53,"drops":675,"kg":78557},"2025-06-20":{"runs":52,"drops":768,"kg":87573},"2025-06-21":{"runs":41,"drops":507,"kg":52145},"2025-06-23":{"runs":51,"drops":652,"kg":77356},"2025-06-24":{"runs":51,"drops":626,"kg":69329},"2025-06-25":{"runs":50,"drops":697,"kg":72905},"2025-06-26":{"runs":52,"drops":676,"kg":73242},"2025-06-27":{"runs":52,"drops":739,"kg":78390},"2025-06-28":{"runs":39,"drops":471,"kg":46200},"2025-06-30":{"runs":53,"drops":666,"kg":80824},"2025-07-01":{"runs":56,"drops":640,"kg":80997},"2025-07-02":{"runs":53,"drops":717,"kg":75696},"2025-07-03":{"runs":53,"drops":683,"kg":73918},"2025-07-04":{"runs":54,"drops":756,"kg":76356},"2025-07-05":{"runs":40,"drops":497,"kg":47294},"2025-07-07":{"runs":49,"drops":688,"kg":80547},"2025-07-08":{"runs":52,"drops":652,"kg":69647},"2025-07-09":{"runs":55,"drops":700,"kg":68942},"2025-07-10":{"runs":51,"drops":717,"kg":73499},"2025-07-11":{"runs":55,"drops":789,"kg":86481},"2025-07-12":{"runs":40,"drops":555,"kg":61370},"2025-07-14":{"runs":55,"drops":708,"kg":91685},"2025-07-15":{"runs":53,"drops":669,"kg":66080},"2025-07-16":{"runs":51,"drops":676,"kg":66300},"2025-07-17":{"runs":53,"drops":603,"kg":62492},"2025-07-18":{"runs":54,"drops":753,"kg":74364},"2025-07-19":{"runs":40,"drops":557,"kg":55657},"2025-07-21":{"runs":51,"drops":578,"kg":63954},"2025-07-22":{"runs":49,"drops":492,"kg":47153},"2025-07-23":{"runs":46,"drops":605,"kg":56158},"2025-07-24":{"runs":49,"drops":564,"kg":57118},"2025-07-25":{"runs":53,"drops":726,"kg":73445},"2025-07-26":{"runs":42,"drops":588,"kg":63099},"2025-07-28":{"runs":48,"drops":590,"kg":70177},"2025-07-29":{"runs":50,"drops":527,"kg":52904},"2025-07-30":{"runs":48,"drops":642,"kg":61117},"2025-07-31":{"runs":52,"drops":574,"kg":63283},"2025-08-01":{"runs":49,"drops":704,"kg":72996},"2025-08-02":{"runs":43,"drops":582,"kg":60739},"2025-08-04":{"runs":50,"drops":608,"kg":71537},"2025-08-05":{"runs":48,"drops":517,"kg":50316},"2025-08-06":{"runs":50,"drops":627,"kg":57886},"2025-08-07":{"runs":51,"drops":576,"kg":64778},"2025-08-08":{"runs":53,"drops":734,"kg":78991},"2025-08-09":{"runs":44,"drops":580,"kg":64870},"2025-08-11":{"runs":48,"drops":640,"kg":73933},"2025-08-12":{"runs":49,"drops":560,"kg":58011},"2025-08-13":{"runs":49,"drops":664,"kg":67624},"2025-08-14":{"runs":51,"drops":651,"kg":67798},"2025-08-15":{"runs":50,"drops":768,"kg":81052},"2025-08-16":{"runs":42,"drops":601,"kg":69174},"2025-08-18":{"runs":51,"drops":663,"kg":87419},"2025-08-19":{"runs":50,"drops":526,"kg":61573},"2025-08-20":{"runs":49,"drops":660,"kg":60713},"2025-08-21":{"runs":51,"drops":601,"kg":65617},"2025-08-22":{"runs":56,"drops":787,"kg":89514},"2025-08-23":{"runs":50,"drops":622,"kg":76414},"2025-08-25":{"runs":49,"drops":539,"kg":68110},"2025-08-26":{"runs":53,"drops":579,"kg":65204},"2025-08-27":{"runs":51,"drops":640,"kg":63356},"2025-08-28":{"runs":54,"drops":613,"kg":63856},"2025-08-29":{"runs":55,"drops":758,"kg":74800},"2025-08-30":{"runs":43,"drops":528,"kg":60315},"2025-09-01":{"runs":58,"drops":710,"kg":102853},"2025-09-02":{"runs":59,"drops":644,"kg":92546},"2025-09-03":{"runs":52,"drops":680,"kg":73455},"2025-09-04":{"runs":55,"drops":639,"kg":74634},"2025-09-05":{"runs":55,"drops":776,"kg":85036},"2025-09-06":{"runs":41,"drops":491,"kg":44445},"2025-09-08":{"runs":53,"drops":695,"kg":88914},"2025-09-09":{"runs":55,"drops":683,"kg":77265},"2025-09-10":{"runs":57,"drops":745,"kg":77964},"2025-09-11":{"runs":57,"drops":697,"kg":77801},"2025-09-12":{"runs":55,"drops":777,"kg":79202},"2025-09-13":{"runs":43,"drops":465,"kg":41908},"2025-09-15":{"runs":54,"drops":676,"kg":83959},"2025-09-16":{"runs":54,"drops":683,"kg":81730},"2025-09-17":{"runs":51,"drops":735,"kg":76000},"2025-09-18":{"runs":53,"drops":679,"kg":77830},"2025-09-19":{"runs":50,"drops":727,"kg":75016},"2025-09-20":{"runs":37,"drops":463,"kg":43929},"2025-09-22":{"runs":53,"drops":716,"kg":91202},"2025-09-23":{"runs":54,"drops":661,"kg":85494},"2025-09-24":{"runs":53,"drops":743,"kg":72413},"2025-09-25":{"runs":54,"drops":704,"kg":78993},"2025-09-26":{"runs":52,"drops":739,"kg":72228},"2025-09-27":{"runs":41,"drops":494,"kg":44152},"2025-09-29":{"runs":55,"drops":760,"kg":97545},"2025-09-30":{"runs":58,"drops":723,"kg":96087},"2025-10-01":{"runs":56,"drops":776,"kg":92920},"2025-10-02":{"runs":55,"drops":700,"kg":79940},"2025-10-03":{"runs":54,"drops":791,"kg":75944},"2025-10-04":{"runs":39,"drops":414,"kg":37458},"2025-10-06":{"runs":56,"drops":756,"kg":91589},"2025-10-07":{"runs":57,"drops":694,"kg":84799},"2025-10-08":{"runs":57,"drops":730,"kg":81863},"2025-10-09":{"runs":53,"drops":669,"kg":72292},"2025-10-10":{"runs":54,"drops":775,"kg":79241},"2025-10-11":{"runs":39,"drops":467,"kg":42591},"2025-10-13":{"runs":55,"drops":716,"kg":94458},"2025-10-14":{"runs":57,"drops":706,"kg":87316},"2025-10-15":{"runs":55,"drops":766,"kg":85649},"2025-10-16":{"runs":56,"drops":670,"kg":76252},"2025-10-17":{"runs":56,"drops":769,"kg":80431},"2025-10-18":{"runs":40,"drops":483,"kg":44770},"2025-10-20":{"runs":54,"drops":730,"kg":94537},"2025-10-21":{"runs":56,"drops":690,"kg":83378},"2025-10-22":{"runs":56,"drops":730,"kg":76528},"2025-10-23":{"runs":53,"drops":657,"kg":72810},"2025-10-24":{"runs":53,"drops":749,"kg":69776},"2025-10-25":{"runs":40,"drops":491,"kg":46563},"2025-10-27":{"runs":45,"drops":523,"kg":63931},"2025-10-28":{"runs":45,"drops":518,"kg":50637},"2025-10-29":{"runs":48,"drops":610,"kg":62803},"2025-10-30":{"runs":47,"drops":544,"kg":54997},"2025-10-31":{"runs":47,"drops":678,"kg":66008},"2025-11-01":{"runs":40,"drops":449,"kg":46537},"2025-11-03":{"runs":53,"drops":691,"kg":99268},"2025-11-04":{"runs":61,"drops":731,"kg":89369},"2025-11-05":{"runs":58,"drops":768,"kg":85549},"2025-11-06":{"runs":53,"drops":663,"kg":80248},"2025-11-07":{"runs":55,"drops":733,"kg":75066},"2025-11-08":{"runs":41,"drops":443,"kg":43868},"2025-11-10":{"runs":55,"drops":710,"kg":100384},"2025-11-11":{"runs":54,"drops":687,"kg":79747},"2025-11-12":{"runs":53,"drops":728,"kg":77550},"2025-11-13":{"runs":52,"drops":639,"kg":75251},"2025-11-14":{"runs":52,"drops":751,"kg":78319},"2025-11-15":{"runs":38,"drops":410,"kg":35997},"2025-11-17":{"runs":57,"drops":739,"kg":97263},"2025-11-18":{"runs":58,"drops":721,"kg":81963},"2025-11-19":{"runs":56,"drops":692,"kg":76588},"2025-11-20":{"runs":55,"drops":671,"kg":75511},"2025-11-21":{"runs":55,"drops":749,"kg":74484},"2025-11-22":{"runs":40,"drops":439,"kg":40803},"2025-11-24":{"runs":56,"drops":712,"kg":98398},"2025-11-25":{"runs":57,"drops":704,"kg":78113},"2025-11-26":{"runs":55,"drops":731,"kg":81497},"2025-11-27":{"runs":56,"drops":675,"kg":74038},"2025-11-28":{"runs":56,"drops":739,"kg":72779},"2025-11-29":{"runs":38,"drops":437,"kg":41638},"2025-12-01":{"runs":56,"drops":739,"kg":100233},"2025-12-02":{"runs":57,"drops":677,"kg":81360},"2025-12-03":{"runs":58,"drops":726,"kg":82344},"2025-12-04":{"runs":56,"drops":659,"kg":77806},"2025-12-05":{"runs":54,"drops":777,"kg":78802},"2025-12-06":{"runs":38,"drops":442,"kg":42919},"2025-12-08":{"runs":54,"drops":725,"kg":101352},"2025-12-09":{"runs":58,"drops":710,"kg":83616},"2025-12-10":{"runs":58,"drops":714,"kg":80241},"2025-12-11":{"runs":55,"drops":719,"kg":76464},"2025-12-12":{"runs":57,"drops":754,"kg":77113},"2025-12-13":{"runs":40,"drops":446,"kg":44709},"2025-12-15":{"runs":57,"drops":768,"kg":98640},"2025-12-16":{"runs":58,"drops":669,"kg":73134},"2025-12-17":{"runs":56,"drops":702,"kg":74715},"2025-12-18":{"runs":56,"drops":639,"kg":69554},"2025-12-19":{"runs":59,"drops":691,"kg":72298},"2025-12-20":{"runs":43,"drops":463,"kg":49926},"2025-12-22":{"runs":50,"drops":540,"kg":75556},"2025-12-23":{"runs":48,"drops":464,"kg":54502},"2025-12-24":{"runs":51,"drops":461,"kg":58580},"2025-12-27":{"runs":39,"drops":361,"kg":41094},"2025-12-29":{"runs":47,"drops":506,"kg":58342},"2025-12-30":{"runs":47,"drops":462,"kg":50298},"2025-12-31":{"runs":48,"drops":534,"kg":69466},"2026-01-02":{"runs":48,"drops":519,"kg":59262},"2026-01-03":{"runs":39,"drops":415,"kg":44398},"2026-01-05":{"runs":58,"drops":508,"kg":71313},"2026-01-06":{"runs":54,"drops":554,"kg":62931},"2026-01-07":{"runs":59,"drops":707,"kg":86476},"2026-01-08":{"runs":59,"drops":618,"kg":83200},"2026-01-09":{"runs":54,"drops":539,"kg":49342},"2026-01-10":{"runs":41,"drops":354,"kg":29797},"2026-01-12":{"runs":57,"drops":658,"kg":89699},"2026-01-13":{"runs":58,"drops":644,"kg":74963},"2026-01-14":{"runs":57,"drops":656,"kg":78253},"2026-01-15":{"runs":55,"drops":624,"kg":67471},"2026-01-16":{"runs":56,"drops":640,"kg":69190},"2026-01-17":{"runs":40,"drops":376,"kg":33675},"2026-01-19":{"runs":56,"drops":685,"kg":90475},"2026-01-20":{"runs":57,"drops":656,"kg":74760},"2026-01-21":{"runs":57,"drops":677,"kg":74385},"2026-01-22":{"runs":57,"drops":634,"kg":75124},"2026-01-23":{"runs":57,"drops":677,"kg":69425},"2026-01-24":{"runs":40,"drops":386,"kg":37090},"2026-01-26":{"runs":56,"drops":717,"kg":97250},"2026-01-27":{"runs":57,"drops":676,"kg":74327},"2026-01-28":{"runs":57,"drops":677,"kg":77112},"2026-01-29":{"runs":56,"drops":627,"kg":71878},"2026-01-30":{"runs":56,"drops":707,"kg":71583},"2026-01-31":{"runs":40,"drops":391,"kg":39101},"2026-02-02":{"runs":57,"drops":717,"kg":98405},"2026-02-03":{"runs":58,"drops":656,"kg":81958},"2026-02-04":{"runs":57,"drops":697,"kg":78982},"2026-02-05":{"runs":54,"drops":651,"kg":72418},"2026-02-06":{"runs":56,"drops":726,"kg":73579},"2026-02-07":{"runs":39,"drops":406,"kg":40627},"2026-02-09":{"runs":58,"drops":737,"kg":93447},"2026-02-10":{"runs":57,"drops":700,"kg":74216},"2026-02-11":{"runs":56,"drops":702,"kg":70618},"2026-02-12":{"runs":57,"drops":648,"kg":72276},"2026-02-13":{"runs":55,"drops":782,"kg":74875},"2026-02-14":{"runs":40,"drops":481,"kg":46464},"2026-02-16":{"runs":50,"drops":591,"kg":69245},"2026-02-17":{"runs":48,"drops":486,"kg":43986},"2026-02-18":{"runs":50,"drops":592,"kg":52894},"2026-02-19":{"runs":48,"drops":493,"kg":46985},"2026-02-20":{"runs":50,"drops":686,"kg":66700},"2026-02-21":{"runs":42,"drops":485,"kg":49380},"2026-02-23":{"runs":59,"drops":753,"kg":102735},"2026-02-24":{"runs":57,"drops":704,"kg":80258},"2026-02-25":{"runs":57,"drops":777,"kg":78686},"2026-02-26":{"runs":55,"drops":680,"kg":80733},"2026-02-27":{"runs":56,"drops":796,"kg":79017},"2026-02-28":{"runs":38,"drops":481,"kg":42414},"2026-03-02":{"runs":58,"drops":773,"kg":105195},"2026-03-03":{"runs":57,"drops":748,"kg":80366},"2026-03-04":{"runs":55,"drops":755,"kg":80304},"2026-03-05":{"runs":56,"drops":712,"kg":78927},"2026-03-06":{"runs":59,"drops":822,"kg":84530},"2026-03-07":{"runs":38,"drops":476,"kg":44083},"2026-03-09":{"runs":59,"drops":797,"kg":101560},"2026-03-10":{"runs":58,"drops":767,"kg":82788},"2026-03-11":{"runs":58,"drops":805,"kg":85269},"2026-03-12":{"runs":58,"drops":742,"kg":81571},"2026-03-13":{"runs":59,"drops":837,"kg":92471},"2026-03-14":{"runs":39,"drops":517,"kg":52862},"2026-03-16":{"runs":57,"drops":772,"kg":98683},"2026-03-17":{"runs":57,"drops":768,"kg":81803},"2026-03-18":{"runs":57,"drops":777,"kg":76908},"2026-03-19":{"runs":56,"drops":760,"kg":79669},"2026-03-20":{"runs":59,"drops":880,"kg":89125},"2026-03-21":{"runs":40,"drops":528,"kg":49840},"2026-03-22":{"runs":1,"drops":1,"kg":39},"2026-03-23":{"runs":57,"drops":817,"kg":100351},"2026-03-24":{"runs":58,"drops":798,"kg":83064},"2026-03-25":{"runs":57,"drops":820,"kg":78919},"2026-03-26":{"runs":55,"drops":760,"kg":85593},"2026-03-27":{"runs":56,"drops":822,"kg":86559},"2026-03-28":{"runs":41,"drops":589,"kg":55932},"2026-03-30":{"runs":52,"drops":595,"kg":75411},"2026-03-31":{"runs":50,"drops":579,"kg":51041},"2026-04-01":{"runs":55,"drops":777,"kg":79365},"2026-04-02":{"runs":55,"drops":660,"kg":67376},"2026-04-03":{"runs":58,"drops":813,"kg":83372},"2026-04-04":{"runs":43,"drops":621,"kg":73243},"2026-04-05":{"runs":1,"drops":1,"kg":5},"2026-04-06":{"runs":52,"drops":569,"kg":67967},"2026-04-07":{"runs":52,"drops":615,"kg":63111},"2026-04-08":{"runs":55,"drops":737,"kg":72467},"2026-04-09":{"runs":56,"drops":666,"kg":65458},"2026-04-10":{"runs":54,"drops":833,"kg":85732},"2026-04-11":{"runs":46,"drops":606,"kg":57349},"2026-04-13":{"runs":62,"drops":771,"kg":99402},"2026-04-14":{"runs":60,"drops":736,"kg":84341},"2026-04-15":{"runs":59,"drops":798,"kg":95100},"2026-04-16":{"runs":55,"drops":723,"kg":77035},"2026-04-17":{"runs":59,"drops":855,"kg":85399},"2026-04-18":{"runs":42,"drops":524,"kg":47693},"2026-04-20":{"runs":63,"drops":846,"kg":106614},"2026-04-21":{"runs":61,"drops":814,"kg":89762},"2026-04-22":{"runs":59,"drops":822,"kg":89742},"2026-04-23":{"runs":60,"drops":766,"kg":84064},"2026-04-24":{"runs":61,"drops":920,"kg":92717},"2026-04-25":{"runs":43,"drops":597,"kg":60347},"2026-04-27":{"runs":67,"drops":895,"kg":118198},"2026-04-28":{"runs":60,"drops":826,"kg":88147},"2026-04-29":{"runs":63,"drops":851,"kg":92484},"2026-04-30":{"runs":64,"drops":859,"kg":103712},"2026-05-01":{"runs":64,"drops":978,"kg":114771},"2026-05-02":{"runs":46,"drops":606,"kg":66775},"2026-05-04":{"runs":54,"drops":581,"kg":65654},"2026-05-05":{"runs":65,"drops":885,"kg":99728}};
+  // === FORECAST (from "Interim NFY26 Week Numbers" workbook, "COMBINED Daily Forecast" tab, Col B) ===
+  const FORECAST = {"2026-03-29":0.0,"2026-03-30":188807.84,"2026-03-31":174899.88,"2026-04-01":208585.44,"2026-04-02":209014.23,"2026-04-03":257679.06,"2026-04-04":151988.55,"2026-04-05":0.0,"2026-04-06":306602.81,"2026-04-07":235220.35,"2026-04-08":254736.43,"2026-04-09":250694.83,"2026-04-10":290058.58,"2026-04-11":210868.01,"2026-04-12":0.0,"2026-04-13":265086.51,"2026-04-14":181096.53,"2026-04-15":223928.58,"2026-04-16":243917.88,"2026-04-17":329212.83,"2026-04-18":259496.68,"2026-04-19":0.0,"2026-04-20":286573.43,"2026-04-21":228355.67,"2026-04-22":247868.75,"2026-04-23":222477.78,"2026-04-24":298562.08,"2026-04-25":221970.3,"2026-04-26":0.0,"2026-04-27":249744.71,"2026-04-28":211164.55,"2026-04-29":268719.16,"2026-04-30":259622.81,"2026-05-01":309893.72,"2026-05-02":216735.05,"2026-05-03":0.0,"2026-05-04":195784.64,"2026-05-05":249083.37,"2026-05-06":266704.21,"2026-05-07":222054.13,"2026-05-08":269255.8,"2026-05-09":182817.84,"2026-05-10":0.0,"2026-05-11":279802.75,"2026-05-12":198460.76,"2026-05-13":249464.29,"2026-05-14":244183.91,"2026-05-15":280341.33,"2026-05-16":184606.95,"2026-05-17":0.0,"2026-05-18":283897.67,"2026-05-19":215701.11,"2026-05-20":262728.5,"2026-05-21":255998.14,"2026-05-22":290276.71,"2026-05-23":226517.86,"2026-05-24":0.0,"2026-05-25":205904.56,"2026-05-26":176279.57,"2026-05-27":224655.06,"2026-05-28":234764.32,"2026-05-29":282280.66,"2026-05-30":230983.84,"2026-05-31":0.0,"2026-06-01":306766.44,"2026-06-02":236678.63,"2026-06-03":261187.14,"2026-06-04":251898.07,"2026-06-05":264715.69,"2026-06-06":193414.03,"2026-06-07":0.0,"2026-06-08":267911.51,"2026-06-09":215611.15,"2026-06-10":253600.09,"2026-06-11":248893.14,"2026-06-12":286018.44,"2026-06-13":204765.66,"2026-06-14":0.0,"2026-06-15":276340.47,"2026-06-16":218379.16,"2026-06-17":258538.09,"2026-06-18":237403.84,"2026-06-19":299578.01,"2026-06-20":194856.43,"2026-06-21":0.0,"2026-06-22":273098.21,"2026-06-23":237611.67,"2026-06-24":258984.65,"2026-06-25":244032.24,"2026-06-26":293831.52,"2026-06-27":190749.7,"2026-06-28":0.0,"2026-06-29":263625.3,"2026-06-30":228080.8,"2026-07-01":251979.59,"2026-07-02":230609.23,"2026-07-03":278025.11,"2026-07-04":178127.96,"2026-07-05":0.0,"2026-07-06":260036.74,"2026-07-07":206772.0,"2026-07-08":220370.62,"2026-07-09":242326.97,"2026-07-10":283821.04,"2026-07-11":218612.64,"2026-07-12":0.0,"2026-07-13":301005.95,"2026-07-14":217286.25,"2026-07-15":243037.72,"2026-07-16":226144.2,"2026-07-17":287216.7,"2026-07-18":219004.19,"2026-07-19":0.0,"2026-07-20":253347.52,"2026-07-21":188034.71,"2026-07-22":226890.55,"2026-07-23":219681.93,"2026-07-24":310238.32,"2026-07-25":267306.98,"2026-07-26":0.0,"2026-07-27":301715.71,"2026-07-28":232108.15,"2026-07-29":268865.77,"2026-07-30":254058.49,"2026-07-31":314656.99,"2026-08-01":275534.88,"2026-08-02":0.0,"2026-08-03":287779.89,"2026-08-04":198040.71,"2026-08-05":247032.44,"2026-08-06":263314.02,"2026-08-07":330311.02,"2026-08-08":282831.93,"2026-08-09":0.0,"2026-08-10":293433.85,"2026-08-11":222997.06,"2026-08-12":261642.74,"2026-08-13":265860.08,"2026-08-14":308170.38,"2026-08-15":273625.89,"2026-08-16":0.0,"2026-08-17":319946.22,"2026-08-18":215408.11,"2026-08-19":249213.19,"2026-08-20":262446.78,"2026-08-21":351448.53,"2026-08-22":311527.17,"2026-08-23":0.0,"2026-08-24":285145.47,"2026-08-25":251438.19,"2026-08-26":261265.33,"2026-08-27":247199.69,"2026-08-28":316473.44,"2026-08-29":243627.87,"2026-08-30":0.0,"2026-08-31":366901.37,"2026-09-01":297857.48,"2026-09-02":287966.1,"2026-09-03":270891.34,"2026-09-04":343750.9,"2026-09-05":199624.82,"2026-09-06":0.0,"2026-09-07":343747.7,"2026-09-08":269928.78,"2026-09-09":303833.38,"2026-09-10":293909.47,"2026-09-11":320369.25,"2026-09-12":179321.43,"2026-09-13":0.0,"2026-09-14":319441.19,"2026-09-15":289669.67,"2026-09-16":295900.65,"2026-09-17":284416.67,"2026-09-18":301746.58,"2026-09-19":195385.22,"2026-09-20":0.0,"2026-09-21":328418.85,"2026-09-22":290605.73,"2026-09-23":278868.94,"2026-09-24":282522.41,"2026-09-25":293967.91,"2026-09-26":181036.17};
 
   const fmtInt = new Intl.NumberFormat('en-GB');
 
@@ -633,6 +926,20 @@
       cur = isoPlusDays(cur, 1);
     }
     return { invoice: inv, credit: cn, daysWithData };
+  }
+  function sumForecastRange(startIso, endIso) {
+    // Sum forecast invoice values across the inclusive date range.
+    if (typeof FORECAST === 'undefined') return { value: 0, days: 0 };
+    let v = 0, days = 0;
+    let cur = startIso;
+    while (cur <= endIso) {
+      if (Object.prototype.hasOwnProperty.call(FORECAST, cur)) {
+        v += Number(FORECAST[cur]) || 0;
+        days++;
+      }
+      cur = isoPlusDays(cur, 1);
+    }
+    return { value: v, days };
   }
   function sumRoutesRange(startIso, endIso) {
     // Sum runs + drops + kg across the inclusive date range.
@@ -1206,6 +1513,9 @@
       }
     }
 
+    // === Daily forecast row ===
+    renderDailyForecast(iso);
+
     // === Routes & Drops section ===
     renderRoutes(iso);
 
@@ -1304,6 +1614,491 @@
     shortDate(earliestDate) + ' – ' + shortDate(latestDate);
   document.getElementById('generatedOn').textContent =
     new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  // ============================================================
+  // ===== YEAR TO DATE (YTD) view =====
+  // ============================================================
+
+  // Fiscal year boundaries are derived from WEEKS where n === 1.
+  // Each FY runs from that week's start to the day before the next FY's start
+  // (or to the last week's end if it's the latest FY in the data).
+  function buildFiscalYears() {
+    const starts = WEEKS
+      .filter(w => w.n === 1)
+      .map(w => w.s)
+      .sort();
+    const fys = [];
+    for (let i = 0; i < starts.length; i++) {
+      const start = starts[i];
+      let end;
+      if (i + 1 < starts.length) {
+        end = isoPlusDays(starts[i + 1], -1);
+      } else {
+        end = WEEKS[WEEKS.length - 1].e;
+      }
+      // Label: FY 26 covers fiscal year that started 2026-03-29 → "FY 26/27"
+      const startYear = parseInt(start.slice(0, 4), 10);
+      const label = `FY ${String(startYear).slice(2)}/${String((startYear + 1) % 100).padStart(2,'0')}`;
+      fys.push({ start, end, label });
+    }
+    return fys;
+  }
+  const FYS = buildFiscalYears();
+
+  function findFy(iso) {
+    if (!FYS.length) return null;
+    // Latest FY whose start <= iso. If iso is before earliest FY, return null.
+    let chosen = null;
+    for (const fy of FYS) {
+      if (fy.start <= iso) chosen = fy;
+      else break;
+    }
+    return chosen;
+  }
+  function priorFyOf(fy) {
+    if (!fy) return null;
+    const idx = FYS.findIndex(f => f.start === fy.start);
+    if (idx <= 0) return null;
+    return FYS[idx - 1];
+  }
+
+  // Sum routes/drops/kg over an inclusive ISO range.
+  function sumRoutesRangeYtd(startIso, endIso) {
+    let runs = 0, drops = 0, kg = 0, daysWithData = 0;
+    let cur = startIso;
+    while (cur <= endIso) {
+      const r = ROUTES[cur];
+      if (r) {
+        runs  += Number(r.runs)  || 0;
+        drops += Number(r.drops) || 0;
+        kg    += Number(r.kg)    || 0;
+        daysWithData++;
+      }
+      cur = isoPlusDays(cur, 1);
+    }
+    return { runs, drops, kg, daysWithData };
+  }
+
+  // Map a date in current FY to the same offset within the prior FY.
+  function priorFyEquivalentDate(fy, priorFy, iso) {
+    if (!priorFy) return null;
+    const offset = daysBetween(fy.start, iso) - 1; // days since FY start (0-based)
+    const candidate = isoPlusDays(priorFy.start, offset);
+    // Clamp to prior FY range
+    if (candidate > priorFy.end) return priorFy.end;
+    return candidate;
+  }
+
+  // Daily forecast row on the Daily view
+  function renderDailyForecast(iso) {
+    const row = document.getElementById('dailyForecastRow');
+    const valEl = document.getElementById('dailyForecastVal');
+    const deltaEl = document.getElementById('dailyForecastDelta');
+    if (!row) return;
+
+    const has = (typeof FORECAST !== 'undefined') && Object.prototype.hasOwnProperty.call(FORECAST, iso);
+    if (!has) {
+      row.style.display = 'none';
+      return;
+    }
+    const fc = Number(FORECAST[iso]) || 0;
+    row.style.display = '';
+    valEl.textContent = fmtGBP.format(fc);
+
+    const dataRow = DATA[iso];
+    const actual = dataRow ? (Number(dataRow.invoice) || 0) : null;
+    if (actual == null) {
+      deltaEl.textContent = 'No actual recorded yet.';
+      deltaEl.className = 'fc-delta';
+    } else if (fc <= 0) {
+      // Forecast is zero (e.g. Sunday) — show actual variance as absolute
+      deltaEl.textContent = 'Actual ' + fmtGBP.format(actual) + ' (no forecast for this day).';
+      deltaEl.className = 'fc-delta';
+    } else {
+      const diff = actual - fc;
+      const pct = diff / fc;
+      const sign = diff >= 0 ? '+' : '−';
+      const cls = diff >= 0 ? 'up' : 'down';
+      deltaEl.textContent = `Actual vs forecast: ${sign}${fmtGBP.format(Math.abs(diff))} (${fmtSignedPct(pct)})`;
+      deltaEl.className = 'fc-delta ' + cls;
+    }
+  }
+
+  function renderYTD(iso) {
+    const fy = findFy(iso);
+    const priorFy = priorFyOf(fy);
+
+    const fyPill = document.getElementById('ytdFyPill');
+    const fyPillR = document.getElementById('ytdRoutesFyPill');
+
+    if (!fy) {
+      fyPill.textContent = 'FY —';
+      fyPillR.textContent = 'FY —';
+      // Blank out all values
+      ['ytdInvoice','ytdCredit','ytdPct','ytdRoutes','ytdDrops','ytdKg',
+       'ytdCmpInvoice','ytdCmpCredit','ytdCmpPct','ytdCmpRoutes','ytdCmpDrops','ytdCmpKg']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+      drawYtdYoyChart(null, null);
+      return;
+    }
+
+    fyPill.textContent = fy.label;
+    fyPillR.textContent = fy.label;
+
+    // === Sales YTD ===
+    const sumCur = sumRange(fy.start, iso);
+    document.getElementById('ytdInvoice').textContent = fmtGBP.format(sumCur.invoice);
+    document.getElementById('ytdCredit').textContent  = fmtGBP.format(sumCur.credit);
+
+    const ytdPctEl = document.getElementById('ytdPct');
+    const ytdPctHint = document.getElementById('ytdPctHint');
+    if (sumCur.invoice > 0) {
+      const pct = sumCur.credit / sumCur.invoice;
+      ytdPctEl.textContent = fmtPct(pct);
+      ytdPctEl.className = 'value pct ' + (pct < 0.02 ? 'good' : pct < 0.04 ? 'warn' : 'bad');
+      ytdPctHint.textContent = '';
+    } else {
+      ytdPctEl.textContent = '—';
+      ytdPctEl.className = 'value pct';
+      ytdPctHint.textContent = 'No invoiced sales recorded for this period.';
+    }
+
+    document.getElementById('ytdSalesRangeLabel').innerHTML =
+      'Period: <strong>' + shortDate(fy.start) + ' – ' + shortDate(iso) + '</strong>';
+    document.getElementById('ytdSalesDayCount').textContent =
+      sumCur.daysWithData + ' day' + (sumCur.daysWithData === 1 ? '' : 's') + ' with sales data';
+
+    // Sales LY comparison
+    const cmpFyEl = document.getElementById('ytdSalesCmpFy');
+    const cmpSubEl = document.getElementById('ytdSalesCmpSub');
+    const cmpInv = document.getElementById('ytdCmpInvoice');
+    const cmpCn  = document.getElementById('ytdCmpCredit');
+    const cmpPct = document.getElementById('ytdCmpPct');
+    const cmpInvD = document.getElementById('ytdCmpInvoiceDelta');
+    const cmpCnD  = document.getElementById('ytdCmpCreditDelta');
+    const cmpPctD = document.getElementById('ytdCmpPctDelta');
+    const cmpNoData = document.getElementById('ytdSalesCmpNoData');
+
+    if (priorFy) {
+      const lyEnd = priorFyEquivalentDate(fy, priorFy, iso);
+      const sumLy = sumRange(priorFy.start, lyEnd);
+      cmpFyEl.textContent = `(${priorFy.label})`;
+      cmpSubEl.textContent = shortDate(priorFy.start) + ' – ' + shortDate(lyEnd);
+
+      if (sumLy.daysWithData > 0) {
+        cmpNoData.style.display = 'none';
+        cmpInv.textContent = fmtGBP.format(sumLy.invoice);
+        cmpCn.textContent  = fmtGBP.format(sumLy.credit);
+        const lyRatio = sumLy.invoice > 0 ? sumLy.credit / sumLy.invoice : null;
+        cmpPct.textContent = (lyRatio == null) ? '—' : fmtPct(lyRatio);
+
+        setDelta(cmpInvD, sumCur.invoice, sumLy.invoice, 'currency', false);
+        setDelta(cmpCnD,  sumCur.credit,  sumLy.credit,  'currency', true);
+        const curRatio = sumCur.invoice > 0 ? sumCur.credit / sumCur.invoice : null;
+        if (curRatio != null && lyRatio != null) {
+          setDelta(cmpPctD, curRatio, lyRatio, 'ratio');
+        } else {
+          cmpPctD.textContent = ''; cmpPctD.className = 'cmp-delta';
+        }
+      } else {
+        cmpNoData.style.display = '';
+        cmpInv.textContent = '—'; cmpCn.textContent = '—'; cmpPct.textContent = '—';
+        cmpInvD.textContent = ''; cmpInvD.className = 'cmp-delta';
+        cmpCnD.textContent  = ''; cmpCnD.className  = 'cmp-delta';
+        cmpPctD.textContent = ''; cmpPctD.className = 'cmp-delta';
+      }
+    } else {
+      cmpFyEl.textContent = '(no prior year)';
+      cmpSubEl.textContent = '';
+      cmpNoData.style.display = '';
+      cmpInv.textContent = '—'; cmpCn.textContent = '—'; cmpPct.textContent = '—';
+      cmpInvD.textContent = ''; cmpInvD.className = 'cmp-delta';
+      cmpCnD.textContent  = ''; cmpCnD.className  = 'cmp-delta';
+      cmpPctD.textContent = ''; cmpPctD.className = 'cmp-delta';
+    }
+
+    // === YTD Forecast ===
+    const fcSub   = document.getElementById('ytdForecastSub');
+    const fcVal   = document.getElementById('ytdForecastVal');
+    const fcDelta = document.getElementById('ytdForecastDelta');
+    const fcPct   = document.getElementById('ytdForecastPct');
+    const fcPctH  = document.getElementById('ytdForecastPctHint');
+    const fcVar   = document.getElementById('ytdForecastVar');
+    const fcVarP  = document.getElementById('ytdForecastVarPct');
+    const fcNo    = document.getElementById('ytdForecastNoData');
+
+    const fcSum = sumForecastRange(fy.start, iso);
+    if (fcSum.days === 0) {
+      fcNo.style.display = '';
+      fcSub.textContent = '';
+      fcVal.textContent = '—';
+      fcPct.textContent = '—';
+      fcVar.textContent = '—';
+      fcDelta.textContent = ''; fcDelta.className = 'cmp-delta';
+      fcPctH.textContent = '';  fcPctH.className  = 'cmp-delta';
+      fcVarP.textContent = '';  fcVarP.className  = 'cmp-delta';
+    } else {
+      fcNo.style.display = 'none';
+      fcSub.textContent = 'Sum of daily forecast over ' + shortDate(fy.start) + ' – ' + shortDate(iso);
+      fcVal.textContent = fmtGBP.format(fcSum.value);
+      // % of forecast achieved
+      const pctAch = fcSum.value > 0 ? sumCur.invoice / fcSum.value : null;
+      fcPct.textContent = (pctAch == null) ? '—' : fmtPct(pctAch);
+      fcPctH.textContent = (pctAch != null && pctAch >= 1) ? 'Ahead of plan' : (pctAch != null ? 'Behind plan' : '');
+      fcPctH.className = 'cmp-delta ' + (pctAch != null && pctAch >= 1 ? 'up' : (pctAch != null ? 'down' : ''));
+      // Variance £ and %
+      const variance = sumCur.invoice - fcSum.value;
+      const varPct = fcSum.value > 0 ? variance / fcSum.value : null;
+      const sign = variance >= 0 ? '+' : '−';
+      fcVar.textContent = sign + fmtGBP.format(Math.abs(variance));
+      fcVar.style.color = variance >= 0 ? 'var(--good)' : 'var(--bad)';
+      fcVarP.textContent = (varPct == null) ? '' : fmtSignedPct(varPct);
+      fcVarP.className = 'cmp-delta ' + (variance >= 0 ? 'up' : 'down');
+      // Achievement delta is informational
+      fcDelta.textContent = '';
+      fcDelta.className = 'cmp-delta';
+    }
+
+    // === Routes YTD ===
+    const rCur = sumRoutesRangeYtd(fy.start, iso);
+    document.getElementById('ytdRoutes').textContent = fmtInt.format(rCur.runs);
+    document.getElementById('ytdDrops').textContent  = fmtInt.format(rCur.drops);
+    document.getElementById('ytdKg').textContent     = fmtInt.format(rCur.kg);
+
+    document.getElementById('ytdRoutesRangeLabel').innerHTML =
+      'Period: <strong>' + shortDate(fy.start) + ' – ' + shortDate(iso) + '</strong>';
+    document.getElementById('ytdRoutesDayCount').textContent =
+      rCur.daysWithData + ' day' + (rCur.daysWithData === 1 ? '' : 's') + ' with route data';
+
+    const rCmpFyEl = document.getElementById('ytdRoutesCmpFy');
+    const rCmpSubEl = document.getElementById('ytdRoutesCmpSub');
+    const rCmpR = document.getElementById('ytdCmpRoutes');
+    const rCmpD = document.getElementById('ytdCmpDrops');
+    const rCmpK = document.getElementById('ytdCmpKg');
+    const rCmpRD = document.getElementById('ytdCmpRoutesDelta');
+    const rCmpDD = document.getElementById('ytdCmpDropsDelta');
+    const rCmpKD = document.getElementById('ytdCmpKgDelta');
+    const rCmpNo = document.getElementById('ytdRoutesCmpNoData');
+
+    if (priorFy) {
+      const lyEnd = priorFyEquivalentDate(fy, priorFy, iso);
+      const rLy = sumRoutesRangeYtd(priorFy.start, lyEnd);
+      rCmpFyEl.textContent = `(${priorFy.label})`;
+      rCmpSubEl.textContent = shortDate(priorFy.start) + ' – ' + shortDate(lyEnd);
+
+      if (rLy.daysWithData > 0) {
+        rCmpNo.style.display = 'none';
+        rCmpR.textContent = fmtInt.format(rLy.runs);
+        rCmpD.textContent = fmtInt.format(rLy.drops);
+        rCmpK.textContent = fmtInt.format(rLy.kg);
+        setDelta(rCmpRD, rCur.runs,  rLy.runs,  'integer', false);
+        setDelta(rCmpDD, rCur.drops, rLy.drops, 'integer', false);
+        setDelta(rCmpKD, rCur.kg,    rLy.kg,    'integer', false);
+      } else {
+        rCmpNo.style.display = '';
+        rCmpR.textContent = '—'; rCmpD.textContent = '—'; rCmpK.textContent = '—';
+        rCmpRD.textContent = ''; rCmpRD.className = 'cmp-delta';
+        rCmpDD.textContent = ''; rCmpDD.className = 'cmp-delta';
+        rCmpKD.textContent = ''; rCmpKD.className = 'cmp-delta';
+      }
+    } else {
+      rCmpFyEl.textContent = '(no prior year)';
+      rCmpSubEl.textContent = '';
+      rCmpNo.style.display = '';
+      rCmpR.textContent = '—'; rCmpD.textContent = '—'; rCmpK.textContent = '—';
+      rCmpRD.textContent = ''; rCmpRD.className = 'cmp-delta';
+      rCmpDD.textContent = ''; rCmpDD.className = 'cmp-delta';
+      rCmpKD.textContent = ''; rCmpKD.className = 'cmp-delta';
+    }
+
+    // === YoY weekly chart ===
+    drawYtdYoyChart(fy, priorFy, iso);
+
+    // Update legend labels
+    document.getElementById('ytdYoyLegendCur').textContent = fy.label;
+    document.getElementById('ytdYoyLegendLy').textContent = priorFy ? priorFy.label : 'Prior FY';
+  }
+
+  // Build the array of fiscal weeks from FY start through the week containing `iso`,
+  // in order. For each, also locate the equivalent prior-FY week (matching n).
+  function fyWeeksUpTo(fy, iso) {
+    const result = [];
+    for (let i = 0; i < WEEKS.length; i++) {
+      const w = WEEKS[i];
+      if (w.s < fy.start) continue;
+      if (w.s > fy.end) break;
+      if (w.s > iso) break;
+      result.push({ idx: i, week: w });
+    }
+    return result;
+  }
+
+  function drawYtdYoyChart(fy, priorFy, iso) {
+    const svg = document.getElementById('ytdYoyChart');
+    const empty = document.getElementById('ytdYoyEmpty');
+    if (!svg) return;
+    if (!fy) {
+      svg.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    const items = fyWeeksUpTo(fy, iso);
+    if (items.length === 0) {
+      svg.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+
+    // Compute weekly totals
+    const labels = [];
+    const cur = [];
+    const ly  = [];
+    const fc  = [];
+    for (const it of items) {
+      const w = it.week;
+      // Weekly invoice total (current FY) - sum DATA over [w.s, w.e]
+      let endIso = w.e;
+      if (endIso > iso) endIso = iso; // partial week up to selected date
+      const sCur = sumRange(w.s, endIso);
+      cur.push(sCur.invoice);
+      // Prior FY equivalent: find prior week in WEEKS with same n that is in priorFy
+      let lyVal = 0;
+      if (priorFy) {
+        const pIdx = priorYearWeekIndex(it.idx);
+        if (pIdx !== -1 && WEEKS[pIdx].s >= priorFy.start && WEEKS[pIdx].e <= priorFy.end) {
+          const pw = WEEKS[pIdx];
+          const sLy = sumRange(pw.s, pw.e);
+          lyVal = sLy.invoice;
+        }
+      }
+      ly.push(lyVal);
+      // Forecast for this week (full week, regardless of partial actuals)
+      const fcSum = sumForecastRange(w.s, w.e);
+      fc.push(fcSum.days > 0 ? fcSum.value : null);
+      labels.push('Wk ' + w.n);
+    }
+
+    // Geometry — width adapts; clamp viewBox to fit
+    const N = items.length;
+    const minPlotW = 540;
+    const perGroup = 56; // px per week group
+    const plotW = Math.max(minPlotW, N * perGroup);
+    const m = { top: 24, right: 14, bottom: 56, left: 70 };
+    const W = plotW + m.left + m.right;
+    const H = 360;
+    const plotH = H - m.top - m.bottom;
+    const groupW = plotW / N;
+    const barW = Math.min(22, (groupW - 12) / 2);
+    const gap  = 4;
+
+    // Update viewBox to fit
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    if (N > 12) svg.style.minWidth = (W) + 'px';
+    else svg.style.minWidth = '';
+
+    const fcVals = fc.filter(v => v != null);
+    const maxV = Math.max(1, ...cur, ...ly, ...fcVals);
+    const yMax = niceCeiling(maxV);
+    const yToPx = (v) => m.top + plotH - (v / yMax) * plotH;
+
+    let s = '';
+    // Y gridlines + axis labels
+    const ticks = 5;
+    for (let t = 0; t <= ticks; t++) {
+      const v = (yMax * t) / ticks;
+      const y = yToPx(v);
+      s += `<line class="gridline" x1="${m.left}" x2="${W - m.right}" y1="${y}" y2="${y}"/>`;
+      s += `<text class="axis-text" x="${m.left - 8}" y="${y + 3}" text-anchor="end">${fmtAxisGBP(v)}</text>`;
+    }
+    s += `<line class="axis-line" x1="${m.left}" x2="${W - m.right}" y1="${m.top + plotH}" y2="${m.top + plotH}"/>`;
+
+    // Bars
+    for (let i = 0; i < N; i++) {
+      const groupX = m.left + i * groupW + groupW / 2;
+      const xCur = groupX - barW - gap / 2;
+      const xLy  = groupX + gap / 2;
+      const yCur = yToPx(cur[i]);
+      const yLy  = yToPx(ly[i]);
+      const hCur = (m.top + plotH) - yCur;
+      const hLy  = (m.top + plotH) - yLy;
+
+      const w = items[i].week;
+      const tCur = `${labels[i]} (${fy.label}) ${shortDate(w.s)}–${shortDate(w.e)}: ${fmtGBP.format(cur[i])}`;
+      const tLy  = priorFy
+        ? `${labels[i]} (${priorFy.label}): ${fmtGBP.format(ly[i])}`
+        : `${labels[i]} (prior FY): ${fmtGBP.format(ly[i])}`;
+
+      if (cur[i] > 0) {
+        s += `<rect class="bar-cur" x="${xCur}" y="${yCur}" width="${barW}" height="${hCur}" rx="2"><title>${tCur}</title></rect>`;
+      }
+      if (ly[i] > 0) {
+        s += `<rect class="bar-ly"  x="${xLy}"  y="${yLy}"  width="${barW}" height="${hLy}"  rx="2"><title>${tLy}</title></rect>`;
+      }
+
+      // Week label (rotate if many weeks)
+      const lblY = m.top + plotH + 18;
+      if (N > 14) {
+        s += `<text class="axis-text" transform="translate(${groupX},${lblY}) rotate(-40)" text-anchor="end">${labels[i]}</text>`;
+      } else {
+        s += `<text class="day-label" x="${groupX}" y="${lblY}" text-anchor="middle">${labels[i]}</text>`;
+        const sub = shortDate(w.s);
+        s += `<text class="axis-text" x="${groupX}" y="${lblY + 14}" text-anchor="middle">${sub}</text>`;
+      }
+    }
+
+    // Forecast overlay: connecting line + markers, one point per week (centred over each group)
+    const fcPts = [];
+    for (let i = 0; i < N; i++) {
+      if (fc[i] == null) continue;
+      const groupX = m.left + i * groupW + groupW / 2;
+      const y = yToPx(fc[i]);
+      fcPts.push({ i, x: groupX, y, v: fc[i], w: items[i].week });
+    }
+    if (fcPts.length >= 2) {
+      const dAttr = fcPts.map((p, idx) => (idx === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+      s += `<path class="fc-line" d="${dAttr}"/>`;
+    }
+    for (const p of fcPts) {
+      const t = `Wk ${p.w.n} forecast (${shortDate(p.w.s)}–${shortDate(p.w.e)}): ${fmtGBP.format(p.v)}`;
+      s += `<circle class="fc-marker" cx="${p.x}" cy="${p.y}" r="4"><title>${t}</title></circle>`;
+    }
+
+    svg.innerHTML = s;
+  }
+
+  // === View tab switching ===
+  const tabDaily = document.getElementById('tabDaily');
+  const tabYtd   = document.getElementById('tabYtd');
+  const dailyView = document.getElementById('dailyView');
+  const ytdView   = document.getElementById('ytdView');
+  let activeView = 'daily';
+
+  function setView(name) {
+    activeView = name;
+    if (name === 'ytd') {
+      tabDaily.classList.remove('active'); tabDaily.setAttribute('aria-selected', 'false');
+      tabYtd.classList.add('active');      tabYtd.setAttribute('aria-selected', 'true');
+      dailyView.hidden = true;
+      ytdView.hidden = false;
+      renderYTD(picker.value || latestDate);
+    } else {
+      tabYtd.classList.remove('active'); tabYtd.setAttribute('aria-selected', 'false');
+      tabDaily.classList.add('active');  tabDaily.setAttribute('aria-selected', 'true');
+      ytdView.hidden = true;
+      dailyView.hidden = false;
+    }
+  }
+  tabDaily.addEventListener('click', () => setView('daily'));
+  tabYtd.addEventListener('click',   () => setView('ytd'));
+
+  // Hook YTD into existing render pipeline so date changes update both views
+  const _origRender = render;
+  render = function(iso) {
+    _origRender(iso);
+    if (activeView === 'ytd') renderYTD(iso);
+  };
 
   // Initial render
   render(latestDate);
