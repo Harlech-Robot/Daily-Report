@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Update</title>
+<link rel="icon" type="image/png" href="harlech-icon.png">
+<link rel="apple-touch-icon" href="harlech-icon.png">
 <style>
   :root {
     --bg: #f5f6f8;
@@ -39,10 +41,25 @@
     gap: 16px;
     margin-bottom: 24px;
   }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand .logo {
+    height: 62px;
+    width: auto;
+    display: block;
+    flex: none;
+  }
   header.top h1 {
     margin: 0;
     font-size: 26px;
     letter-spacing: -0.01em;
+  }
+  @media (max-width: 480px) {
+    .brand .logo { height: 50px; }
+    header.top h1 { font-size: 22px; }
   }
   header.top .sub {
     color: var(--muted);
@@ -454,11 +471,14 @@
 <div class="page">
 
   <header class="top">
-    <div>
-      <h1>Daily Update</h1>
-      <div class="sub" id="dateLong">&nbsp;</div>
-      <div class="bh-line" id="bhLine" style="display:none;">
-        <span class="bh-badge bh-badge-strong" id="bhBadge"></span>
+    <div class="brand">
+      <img class="logo" src="harlech-logo.png" alt="Harlech Foodservice — www.harlech.co.uk">
+      <div>
+        <h1>Daily Update</h1>
+        <div class="sub" id="dateLong">&nbsp;</div>
+        <div class="bh-line" id="bhLine" style="display:none;">
+          <span class="bh-badge bh-badge-strong" id="bhBadge"></span>
+        </div>
       </div>
     </div>
     <div class="date-bar">
