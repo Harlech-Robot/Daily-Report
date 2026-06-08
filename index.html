@@ -524,6 +524,11 @@
         <div class="value" id="gpPct">&mdash;</div>
         <div class="hint" id="gpHint">&nbsp;</div>
       </div>
+      <div class="stat">
+        <div class="label">Adjusted Margin</div>
+        <div class="value" id="gpAdj">&mdash;</div>
+        <div class="hint">Like-for-like: +~1.25% rebates, +~2.1% bonuses</div>
+      </div>
     </div>
 
     <div class="compare" id="compareBlock">
@@ -656,6 +661,11 @@
         <div class="label">Gross Profit %</div>
         <div class="value" id="wtdGpPct">&mdash;</div>
         <div class="hint" id="wtdGpHint">&nbsp;</div>
+      </div>
+      <div class="stat">
+        <div class="label">Adjusted Margin</div>
+        <div class="value" id="wtdGpAdj">&mdash;</div>
+        <div class="hint">Like-for-like: +~1.25% rebates, +~2.1% bonuses</div>
       </div>
     </div>
 
@@ -800,6 +810,11 @@
           <div class="label">Gross Profit %</div>
           <div class="value" id="ytdGpPct">&mdash;</div>
           <div class="hint" id="ytdGpHint">&nbsp;</div>
+        </div>
+        <div class="stat">
+          <div class="label">Adjusted Margin</div>
+          <div class="value" id="ytdGpAdj">&mdash;</div>
+          <div class="hint">Like-for-like: +~1.25% rebates, +~2.1% bonuses</div>
         </div>
       </div>
 
@@ -1009,6 +1024,13 @@
   function gpRatio(invoice, credit, profit) {
     const net = (Number(invoice) || 0) - (Number(credit) || 0);
     return net > 0 ? (Number(profit) || 0) / net : null;
+  }
+  // Adjusted (like-for-like) margin adds back customer rebate accruals
+  // (~1.25% of sales) and negative bonus accruals (~2.1% of sales),
+  // which depress the reported margin but aren't in the prior-year base.
+  const MARGIN_ADJ_RATIO = 0.0335; // +1.25pp + 2.10pp
+  function adjMargin(gr) {
+    return gr == null ? null : gr + MARGIN_ADJ_RATIO;
   }
   function sumForecastRange(startIso, endIso) {
     // Sum forecast invoice values across the inclusive date range.
@@ -1458,6 +1480,7 @@
     const wtdProfit   = document.getElementById('wtdProfit');
     const wtdGpEl     = document.getElementById('wtdGpPct');
     const wtdGpHint   = document.getElementById('wtdGpHint');
+    const wtdGpAdjEl  = document.getElementById('wtdGpAdj');
     const cmpProfit   = document.getElementById('wtdCmpProfit');
     const cmpGpEl     = document.getElementById('wtdCmpGp');
     const cmpProfitDelta = document.getElementById('wtdCmpProfitDelta');
@@ -1470,7 +1493,7 @@
       wtdInv.textContent = '—'; wtdCn.textContent = '—'; wtdPctEl.textContent = '—';
       wtdPctEl.className = 'value pct';
       wtdPctHint.textContent = '';
-      wtdProfit.textContent = '—'; wtdGpEl.textContent = '—'; wtdGpHint.textContent = '';
+      wtdProfit.textContent = '—'; wtdGpEl.textContent = '—'; wtdGpHint.textContent = ''; wtdGpAdjEl.textContent = '—';
       wtdRange.textContent = 'Selected date is outside the week calendar.';
       wtdDayCnt.textContent = '';
       cmpPill.textContent = '';
@@ -1516,9 +1539,11 @@
     if (wtdGr == null) {
       wtdGpEl.textContent = 'n/a';
       wtdGpHint.textContent = 'No net sales yet this week.';
+      wtdGpAdjEl.textContent = 'n/a';
     } else {
       wtdGpEl.textContent = fmtPct(wtdGr);
       wtdGpHint.textContent = '';
+      wtdGpAdjEl.textContent = fmtPct(adjMargin(wtdGr));
     }
 
     // === Same week last year ===
@@ -1592,6 +1617,7 @@
     const profitEl  = document.getElementById('profitVal');
     const gpEl      = document.getElementById('gpPct');
     const gpHint    = document.getElementById('gpHint');
+    const gpAdjEl   = document.getElementById('gpAdj');
     const bhLine    = document.getElementById('bhLine');
     const bhBadge   = document.getElementById('bhBadge');
 
@@ -1618,6 +1644,7 @@
       profitEl.textContent = '—';
       gpEl.textContent = '—';
       gpHint.textContent = '';
+      gpAdjEl.textContent = '—';
     } else {
       noData.style.display = 'none';
       const inv = Number(row.invoice) || 0;
@@ -1647,9 +1674,11 @@
       if (gr == null) {
         gpEl.textContent = 'n/a';
         gpHint.textContent = 'No net sales on this day.';
+        gpAdjEl.textContent = 'n/a';
       } else {
         gpEl.textContent = fmtPct(gr);
         gpHint.textContent = '';
+        gpAdjEl.textContent = fmtPct(adjMargin(gr));
       }
     }
 
@@ -1898,7 +1927,7 @@
       fyPill.textContent = 'FY —';
       fyPillR.textContent = 'FY —';
       // Blank out all values
-      ['ytdInvoice','ytdCredit','ytdPct','ytdProfit','ytdGpPct','ytdRoutes','ytdDrops','ytdKg',
+      ['ytdInvoice','ytdCredit','ytdPct','ytdProfit','ytdGpPct','ytdGpAdj','ytdRoutes','ytdDrops','ytdKg',
        'ytdCmpInvoice','ytdCmpCredit','ytdCmpPct','ytdCmpProfit','ytdCmpGp','ytdCmpRoutes','ytdCmpDrops','ytdCmpKg']
         .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
       drawYtdYoyChart(null, null);
@@ -1930,13 +1959,16 @@
     document.getElementById('ytdProfit').textContent = fmtGBP.format(sumCur.profit);
     const ytdGpEl = document.getElementById('ytdGpPct');
     const ytdGpHint = document.getElementById('ytdGpHint');
+    const ytdGpAdjEl = document.getElementById('ytdGpAdj');
     const ytdGr = gpRatio(sumCur.invoice, sumCur.credit, sumCur.profit);
     if (ytdGr == null) {
       ytdGpEl.textContent = '—';
       ytdGpHint.textContent = 'No net sales recorded for this period.';
+      ytdGpAdjEl.textContent = '—';
     } else {
       ytdGpEl.textContent = fmtPct(ytdGr);
       ytdGpHint.textContent = '';
+      ytdGpAdjEl.textContent = fmtPct(adjMargin(ytdGr));
     }
 
     document.getElementById('ytdSalesRangeLabel').innerHTML =
